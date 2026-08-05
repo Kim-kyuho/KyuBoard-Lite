@@ -1,0 +1,18 @@
+services:
+  kyuboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      KYUBOARD_DATA_DIR: /app/data
+    command: npm run dev -- --hostname 0.0.0.0
+    volumes:
+      - .:/app
+      - kyuboard_node_modules:/app/node_modules
+      - kyuboard_data:/app/data
+
+volumes:
+  kyuboard_node_modules:
+  kyuboard_data:

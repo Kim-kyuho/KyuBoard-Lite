@@ -1,0 +1,73 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import BoardMenu from "@/components/BoardMenu";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import ImageUrlModal from "@/components/ImageUrlModal";
+import PressableButton from "@/components/PressableButton";
+
+describe("PressableButton", () => {
+    it("applies and clears touch feedback while forwarding callbacks", () => {
+        const onTouchStart = vi.fn();
+        const onTouchEnd = vi.fn();
+        render(<PressableButton onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>Action</PressableButton>);
+        const button = screen.getByRole("button", { name: "Action" });
+
+        fireEvent.touchStart(button);
+        expect(button).toHaveClass("scale-[0.96]");
+        expect(onTouchStart).toHaveBeenCalledOnce();
+
+        fireEvent.touchEnd(button);
+        expect(button).not.toHaveClass("scale-[0.96]");
+        expect(onTouchEnd).toHaveBeenCalledOnce();
+    });
+});
+
+describe("ConfirmDialog", () => {
+    it("renders through a portal and dispatches confirm and cancel", () => {
+        const onConfirm = vi.fn();
+        const onCancel = vi.fn();
+        render(<ConfirmDialog message="Delete card?" onConfirm={onConfirm} onCancel={onCancel} />);
+
+        expect(screen.getByText("Delete card?")).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", { name: "Yes" }));
+        fireEvent.click(screen.getByRole("button", { name: "No" }));
+        expect(onConfirm).toHaveBeenCalledOnce();
+        expect(onCancel).toHaveBeenCalledOnce();
+    });
+});
+
+describe("Lite board controls", () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("validates and submits an HTTP image URL", async () => {
+        const onSubmit = vi.fn().mockResolvedValue(true);
+        const onClose = vi.fn();
+        render(<ImageUrlModal onClose={onClose} onSubmit={onSubmit} />);
+
+        fireEvent.change(screen.getByLabelText("Image URL"), { target: { value: "ftp://example.com/image.png" } });
+        fireEvent.click(screen.getByRole("button", { name: "Add image" }));
+        expect(await screen.findByText(/valid HTTP or HTTPS/i)).toBeInTheDocument();
+
+        fireEvent.change(screen.getByLabelText("Image URL"), { target: { value: "https://example.com/image.png" } });
+        fireEvent.change(screen.getByLabelText("Label (optional)"), { target: { value: " Example " } });
+        fireEvent.click(screen.getByRole("button", { name: "Add image" }));
+        await waitFor(() => expect(onSubmit).toHaveBeenCalledWith("https://example.com/image.png", "Example"));
+        expect(onClose).toHaveBeenCalledOnce();
+    });
+
+    it("disables Export while a card is being edited", () => {
+        render(<BoardMenu
+            menuOpen
+            currentBoard={{ title: "KyuBoard Lite" }}
+            setMenuOpen={vi.fn()}
+            exportDisabled
+            transferring={false}
+            onExport={vi.fn()}
+            onImport={vi.fn()}
+            onCompileMarkdown={vi.fn()}
+        />);
+
+        expect(screen.getByRole("button", { name: "Export" })).toBeDisabled();
+        expect(screen.getByText("Finish editing before exporting.")).toBeVisible();
+    });
+});
