@@ -1,23 +1,14 @@
 import { RefObject, useState } from "react";
-import { defaultTableSource, TableSource } from "@/lib/table-card";
+import { defaultTableSource } from "@/lib/table-card";
+import { nextPositiveId, type BoardTable } from "@/lib/board-state";
 
-export type BoardTable = {
-    id: number;
-    boardId: number;
-    source: TableSource;
-    x: number;
-    y: number;
-    z: number;
-    width: number;
-    height: number;
-};
+export type { BoardTable } from "@/lib/board-state";
 
 type UseBoardTablesOptions = {
     initialTables: BoardTable[];
     boardId: number;
     boardZoom: number;
     cardLocationRef: RefObject<HTMLDivElement | null>;
-    setPermissionMessage: (message: string) => void;
 };
 
 export function useBoardTables({
@@ -25,7 +16,6 @@ export function useBoardTables({
     boardId,
     boardZoom,
     cardLocationRef,
-    setPermissionMessage,
 }: UseBoardTablesOptions) {
     const [tables, setTables] = useState<BoardTable[]>(initialTables);
     const [editingTableId, setEditingTableId] = useState<number | null>(null);
@@ -56,65 +46,17 @@ export function useBoardTables({
     };
 
     const handleInsertTable = async (table: BoardTable) => {
-        const response = await fetch("/api/tables", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(table),
+        setTables((prev) => {
+            const id = nextPositiveId(prev.map((item) => item.id));
+            return prev.map((item) => item.id === table.id ? { ...table, id } : item);
         });
-        const data = await response.json();
-
-        if (!response.ok || !data.ok) {
-            setPermissionMessage(data.message ?? "Table could not be created.");
-            return;
-        }
-
-        setTables((prev) =>
-            prev.map((item) => item.id === table.id
-                ? {
-                    id: data.table.tableId,
-                    boardId: data.table.boardId,
-                    source: data.table.source,
-                    x: data.table.x,
-                    y: data.table.y,
-                    z: data.table.z,
-                    width: data.table.width,
-                    height: data.table.height,
-                }
-                : item)
-        );
     };
 
     const handleUpdateTable = async (table: BoardTable) => {
-        const response = await fetch(`/api/tables/${table.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(table),
-        });
-        const data = await response.json();
-
-        if (!response.ok || !data.ok) {
-            setPermissionMessage(data.message ?? "Table could not be updated.");
-            return;
-        }
-
         setTables((prev) => prev.map((item) => item.id === table.id ? table : item));
     };
 
     const handleDeleteTable = async (id: number) => {
-        if (id < 0) {
-            setTables((prev) => prev.filter((table) => table.id !== id));
-            setEditingTableId((prev) => prev === id ? null : prev);
-            return;
-        }
-
-        const response = await fetch(`/api/tables/${id}`, { method: "DELETE" });
-        const data = await response.json();
-
-        if (!response.ok || !data.ok) {
-            setPermissionMessage(data.message ?? "Table could not be deleted.");
-            return;
-        }
-
         setTables((prev) => prev.filter((table) => table.id !== id));
         setEditingTableId((prev) => prev === id ? null : prev);
     };

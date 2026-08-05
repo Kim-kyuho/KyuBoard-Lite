@@ -59,19 +59,18 @@
 | `drawingTool` | `"draw"` | `"draw" \| "pan" \| "erase"` |
 | `penColor` | `defaultPenColor` ("Ink" `#1f2937`) | - |
 | `penWidth` | `defaultPenWidth` (Medium, 4) | - |
-| `unsavedRef` | `false` | 획 추가/지우기/undo 시 `true`로 표시(저장 필요 플래그) |
 
 ### `handleToggleDrawingMode` (50~70줄)
-- 이미 그리기 모드 → 모드 종료 + `drawingTool`을 `"draw"`로 리셋 + `unsavedRef`가 true면 `saveStrokes(strokes)`(`PATCH /api/drawings/{boardId}`) 호출 후 플래그 초기화
-- 아니면 → `canEditCard`가 false면 `showPermissionMessage()`로 거부, true면 모드 진입 + 도구를 `"draw"`로 리셋
+- 이미 그리기 모드 → 모드 종료 + `drawingTool`을 `"draw"`로 리셋
+- 아니면 → 모드 진입 + 도구를 `"draw"`로 리셋
 
 ### `toggleDrawingTool(tool)` (72~74줄)
 같은 도구를 다시 누르면 `"draw"`로 되돌아가는 **토글** 방식 — `handleTogglePanTool`/`handleToggleEraseTool`이 이를 감쌈.
 
 ### `handleStrokeEnd`/`handleErase`/`handleUndoStroke` (76~112줄)
-셋 다 상태 변경 성공 시 `unsavedRef.current = true`로 표시. `handleErase`는 `eraseStrokesAlongPath`가 참조 동일 배열을 반환하면(실제로 지워진 게 없으면) 플래그를 세우지 않는다(97~99줄).
+셋 다 React의 `strokes` 상태를 직접 갱신한다. `handleErase`는 실제로 지워진 게 없으면 `eraseStrokesAlongPath`가 기존 배열 참조를 그대로 반환한다.
 
 ## 알려진 특이사항
 
-- 저장은 "완료" 버튼(모드 종료) 시점에만 일어난다 — 그리는 도중에는 서버에 반영되지 않으므로, 그리기 모드에서 벗어나지 않고 새로고침하면 미저장 획을 잃는다.
+- 그리기 중에는 Export와 SQLite autosave가 잠긴다. "완료" 버튼으로 모드를 종료하면 `BoardClient`의 snapshot autosave가 브라우저 SQLite에 획을 저장한다.
 - Undo 버튼은 항상 클릭 가능하게 렌더되며(disabled 처리 없음) 빈 스택에서는 `handleUndoStroke`가 조용히 아무 것도 하지 않는다 — 사용자에게 "더 이상 undo할 게 없다"는 피드백이 없다.

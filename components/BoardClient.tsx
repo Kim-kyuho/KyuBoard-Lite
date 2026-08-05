@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ImageCard from "./ImageCard";
 import ImageUrlModal from "./ImageUrlModal";
 import MemoCard from "@/components/MemoCard";
@@ -13,77 +13,25 @@ import MermaidCard from "./MermaidCard";
 import TableCard from "./TableCard";
 import DrawingLayer from "./DrawingLayer";
 import DrawingToolBar from "./DrawingToolBar";
-import type { BoardStroke } from "@/lib/board-stroke";
 import { useBoardDrawing } from "@/hooks/useBoardDrawing";
 import { useCardLayer } from "@/hooks/useCardLayer";
 import { useBoardImages } from "@/hooks/useBoardImages";
 import { useBoardMermaids } from "@/hooks/useBoardMermaids";
 import { useBoardTables } from "@/hooks/useBoardTables";
-import type { TableSource } from "@/lib/table-card";
 import { useBoardMemoFocus } from "@/hooks/useBoardMemoFocus";
 import { useBoardMemos } from "@/hooks/useBoardMemos";
 import { useBoardScroll } from "@/hooks/useBoardScroll";
 import { useBoardSearch } from "@/hooks/useBoardSearch";
 import { useBoardZoom } from "@/hooks/useBoardZoom";
 import { useBoardTransfer } from "@/hooks/useBoardTransfer";
-
-interface Board {
-  boardId: number;
-  title: string;
-  width: number;
-  height: number;
-}
-
-interface Image {
-    imageId: number;
-    boardId: number;
-    url: string;
-    label: string | null;
-    x: number;
-    y: number;
-    z: number;
-    width: number;
-    height: number;
-}
-
-interface Memo {
-    id: number;
-    boardId: number;
-    content: string;
-    x: number;
-    y: number;
-    z: number;
-    width: number;
-    height: number;
-    color: string;
-}
-
-interface Mermaid {
-    id: number;
-    boardId: number;
-    source: string;
-    x: number;
-    y: number;
-    z: number;
-    width: number;
-    height: number;
-}
-
-interface Table {
-    id: number;
-    boardId: number;
-    source: TableSource;
-    x: number;
-    y: number;
-    z: number;
-    width: number;
-    height: number;
-}
+import { defaultBoard, type BoardSnapshot } from "@/lib/board-state";
+import { loadBoardState, replaceBoardState } from "@/lib/browser-db/client";
 
 // 보드 컴포넌트
-export default function BoardClient(
-  {currentBoard, mappedImages, mappedMemos, mappedMermaids, mappedTables, mappedStrokes}:{currentBoard:Board, mappedImages: Image[], mappedMemos: Memo[], mappedMermaids: Mermaid[], mappedTables: Table[], mappedStrokes: BoardStroke[]}
-) {
+export default function BoardClient() {
+    const [currentBoard, setCurrentBoard] = useState(defaultBoard);
+    const [databaseReady, setDatabaseReady] = useState(false);
+    const [databaseError, setDatabaseError] = useState("");
     const boardWidth = currentBoard.width;
     const boardHeight = currentBoard.height;
     const cardLocationRef = useRef<HTMLDivElement | null>(null);
@@ -109,11 +57,10 @@ export default function BoardClient(
         handleUpdateImage,
         handleDeleteImage,
     } = useBoardImages({
-        initialImages: mappedImages,
+        initialImages: [],
         boardId: currentBoard.boardId,
         boardZoom,
         cardLocationRef,
-        setMessage: setPermissionMessage,
     });
 
     const {
@@ -126,11 +73,10 @@ export default function BoardClient(
         handleUpdateMemo,
         handleDeleteMemo,
     } = useBoardMemos({
-        initialMemos: mappedMemos,
+        initialMemos: [],
         boardId: currentBoard.boardId,
         boardZoom,
         cardLocationRef,
-        setPermissionMessage,
     });
 
     const {
@@ -168,11 +114,10 @@ export default function BoardClient(
         handleUpdateMermaid,
         handleDeleteMermaid,
     } = useBoardMermaids({
-        initialMermaids: mappedMermaids,
+        initialMermaids: [],
         boardId: currentBoard.boardId,
         boardZoom,
         cardLocationRef,
-        setPermissionMessage,
     });
 
     const {
@@ -185,15 +130,15 @@ export default function BoardClient(
         handleUpdateTable,
         handleDeleteTable,
     } = useBoardTables({
-        initialTables: mappedTables,
+        initialTables: [],
         boardId: currentBoard.boardId,
         boardZoom,
         cardLocationRef,
-        setPermissionMessage,
     });
 
     const {
         strokes,
+        setStrokes,
         drawingMode,
         drawingTool,
         penColor,
@@ -207,9 +152,7 @@ export default function BoardClient(
         handleErase,
         handleUndoStroke,
     } = useBoardDrawing({
-        initialStrokes: mappedStrokes,
-        boardId: currentBoard.boardId,
-        setPermissionMessage,
+        initialStrokes: [],
     });
 
     const isEditing =
@@ -217,6 +160,52 @@ export default function BoardClient(
         editingImageId !== null ||
         editingMermaidId !== null ||
         editingTableId !== null;
+
+    const snapshot = useMemo<BoardSnapshot>(() => ({
+        board: currentBoard,
+        memos,
+        images,
+        mermaids,
+        tables,
+        strokes,
+    }), [currentBoard, images, memos, mermaids, strokes, tables]);
+
+    const applySnapshot = useCallback((next: BoardSnapshot) => {
+        setCurrentBoard(next.board);
+        setMemos(next.memos);
+        setImages(next.images);
+        setMermaids(next.mermaids);
+        setTables(next.tables);
+        setStrokes(next.strokes);
+    }, [setImages, setMemos, setMermaids, setStrokes, setTables]);
+
+    useEffect(() => {
+        let active = true;
+        loadBoardState()
+            .then((stored) => {
+                if (!active) return;
+                applySnapshot(stored);
+                setDatabaseReady(true);
+            })
+            .catch((error: unknown) => {
+                if (!active) return;
+                setDatabaseError(error instanceof Error ? error.message : "Browser SQLite could not be opened.");
+            });
+        return () => {
+            active = false;
+        };
+    }, [applySnapshot]);
+
+    useEffect(() => {
+        if (!databaseReady || isEditing || drawingMode) return;
+
+        const timeoutId = window.setTimeout(() => {
+            replaceBoardState(snapshot).catch((error: unknown) => {
+                setPermissionMessage(error instanceof Error ? error.message : "The board could not be saved.");
+            });
+        }, 150);
+        return () => window.clearTimeout(timeoutId);
+    }, [databaseReady, drawingMode, isEditing, snapshot]);
 
     const {
         importInputRef,
@@ -227,6 +216,7 @@ export default function BoardClient(
     } = useBoardTransfer({
         exportDisabled: isEditing || drawingMode,
         setMessage: setPermissionMessage,
+        getSnapshot: () => snapshot,
     });
 
     const {
@@ -240,13 +230,37 @@ export default function BoardClient(
     });
 
     const { handleCardLayer } = useCardLayer({
-        boardId: currentBoard.boardId,
+        memos,
+        images,
+        mermaids,
+        tables,
         setMemos,
         setImages,
         setMermaids,
         setTables,
-        setPermissionMessage,
     });
+
+    if (databaseError) {
+        return (
+            <main className="flex h-screen w-screen items-center justify-center bg-neutral-100 p-6">
+                <div className="max-w-lg rounded-xl bg-white p-6 shadow-md">
+                    <h1 className="text-lg font-bold text-neutral-900">Browser SQLite could not start</h1>
+                    <p className="mt-2 text-sm text-neutral-600">{databaseError}</p>
+                    <p className="mt-3 text-sm text-neutral-500">
+                        Use a current browser with IndexedDB enabled and open this page over HTTPS or localhost.
+                    </p>
+                </div>
+            </main>
+        );
+    }
+
+    if (!databaseReady) {
+        return (
+            <main className="flex h-screen w-screen items-center justify-center bg-neutral-100 text-sm text-neutral-600">
+                Opening browser SQLite...
+            </main>
+        );
+    }
 
   return (
     <>
@@ -312,7 +326,7 @@ export default function BoardClient(
         )}
         {markdownViewOpen && (
             <BoardMarkdownView
-                boardId={currentBoard.boardId}
+                snapshot={snapshot}
                 onClose={() => setMarkdownViewOpen(false)}
             />
         )}

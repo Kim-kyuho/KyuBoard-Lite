@@ -1,16 +1,25 @@
 import { ChangeEvent, useRef, useState } from "react";
+import type { BoardSnapshot } from "@/lib/board-state";
+import {
+    exportBoardDatabase,
+    importBoardDatabase,
+    replaceBoardState,
+} from "@/lib/browser-db/client";
 
 type UseBoardTransferOptions = {
     exportDisabled: boolean;
     setMessage: (message: string) => void;
+    getSnapshot: () => BoardSnapshot;
 };
 
-async function getErrorMessage(response: Response, fallback: string) {
-    const data = await response.json().catch(() => null);
-    return data?.message ?? fallback;
-}
+const errorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error && error.message ? error.message : fallback;
 
-export function useBoardTransfer({ exportDisabled, setMessage }: UseBoardTransferOptions) {
+export function useBoardTransfer({
+    exportDisabled,
+    setMessage,
+    getSnapshot,
+}: UseBoardTransferOptions) {
     const importInputRef = useRef<HTMLInputElement | null>(null);
     const [transferring, setTransferring] = useState(false);
 
@@ -19,13 +28,9 @@ export function useBoardTransfer({ exportDisabled, setMessage }: UseBoardTransfe
 
         setTransferring(true);
         try {
-            const response = await fetch("/api/save/export");
-            if (!response.ok) {
-                setMessage(await getErrorMessage(response, "The board could not be exported."));
-                return;
-            }
-
-            const file = await response.blob();
+            await replaceBoardState(getSnapshot());
+            const bytes = await exportBoardDatabase();
+            const file = new Blob([bytes], { type: "application/vnd.sqlite3" });
             const fileUrl = URL.createObjectURL(file);
             const downloadLink = document.createElement("a");
             downloadLink.href = fileUrl;
@@ -34,8 +39,8 @@ export function useBoardTransfer({ exportDisabled, setMessage }: UseBoardTransfe
             downloadLink.click();
             downloadLink.remove();
             URL.revokeObjectURL(fileUrl);
-        } catch {
-            setMessage("The board could not be exported.");
+        } catch (error) {
+            setMessage(errorMessage(error, "The board could not be exported."));
         } finally {
             setTransferring(false);
         }
@@ -50,6 +55,11 @@ export function useBoardTransfer({ exportDisabled, setMessage }: UseBoardTransfe
         event.target.value = "";
         if (!file) return;
 
+        if (file.size > 50 * 1024 * 1024) {
+            setMessage("The SQLite save file must be 50 MiB or smaller.");
+            return;
+        }
+
         const confirmed = window.confirm(
             "Importing this save file will replace the current board. Continue?",
         );
@@ -57,17 +67,10 @@ export function useBoardTransfer({ exportDisabled, setMessage }: UseBoardTransfe
 
         setTransferring(true);
         try {
-            const formData = new FormData();
-            formData.append("file", file);
-            const response = await fetch("/api/save/import", { method: "POST", body: formData });
-            if (!response.ok) {
-                setMessage(await getErrorMessage(response, "The save file could not be imported."));
-                return;
-            }
-
+            await importBoardDatabase(await file.arrayBuffer());
             window.location.reload();
-        } catch {
-            setMessage("The save file could not be imported.");
+        } catch (error) {
+            setMessage(errorMessage(error, "The save file could not be imported."));
         } finally {
             setTransferring(false);
         }

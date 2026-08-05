@@ -1,22 +1,13 @@
 import { RefObject, useState } from "react";
+import { nextPositiveId, type BoardMermaid } from "@/lib/board-state";
 
-export type BoardMermaid = {
-    id: number;
-    boardId: number;
-    source: string;
-    x: number;
-    y: number;
-    z: number;
-    width: number;
-    height: number;
-};
+export type { BoardMermaid } from "@/lib/board-state";
 
 type UseBoardMermaidsOptions = {
     initialMermaids: BoardMermaid[];
     boardId: number;
     boardZoom: number;
     cardLocationRef: RefObject<HTMLDivElement | null>;
-    setPermissionMessage: (message: string) => void;
 };
 
 type BoardPoint = {
@@ -32,7 +23,6 @@ export function useBoardMermaids({
     boardId,
     boardZoom,
     cardLocationRef,
-    setPermissionMessage,
 }: UseBoardMermaidsOptions) {
     const [mermaids, setMermaids] = useState<BoardMermaid[]>(initialMermaids);
     const [editingMermaidId, setEditingMermaidId] = useState<number | null>(null);
@@ -76,36 +66,12 @@ export function useBoardMermaids({
         width: number,
         height: number,
     ) => {
-        const response = await fetch("/api/mermaids", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ boardId, source, x, y, z, width, height }),
+        setMermaids((prev) => {
+            const id = nextPositiveId(prev.map((mermaid) => mermaid.id));
+            return prev.map((mermaid) => mermaid.id === tempId
+                ? { id, boardId, source, x, y, z, width, height }
+                : mermaid);
         });
-        const data = await response.json();
-
-        if (!response.ok || !data.ok) {
-            setPermissionMessage(data.message ?? "The Mermaid card could not be created.");
-            return;
-        }
-
-        setMermaids((prev) =>
-            prev.map((mermaid) =>
-                mermaid.id === tempId
-                    ? {
-                        id: data.mermaid.mermaidId,
-                        boardId: data.mermaid.boardId,
-                        source: data.mermaid.source,
-                        x: data.mermaid.x,
-                        y: data.mermaid.y,
-                        z: data.mermaid.z,
-                        width: data.mermaid.width,
-                        height: data.mermaid.height,
-                    }
-                    : mermaid
-            )
-        );
     };
 
     const handleUpdateMermaid = async (
@@ -118,20 +84,6 @@ export function useBoardMermaids({
         width: number,
         height: number,
     ) => {
-        const response = await fetch(`/api/mermaids/${id}`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ boardId, source, x, y, z, width, height }),
-        });
-        const data = await response.json();
-
-        if (!response.ok || !data.ok) {
-            setPermissionMessage(data.message ?? "The Mermaid card could not be updated.");
-            return;
-        }
-
         setMermaids((prev) =>
             prev.map((mermaid) =>
                 mermaid.id === id
@@ -142,22 +94,6 @@ export function useBoardMermaids({
     };
 
     const handleDeleteMermaid = async (id: number) => {
-        if (id < 0) {
-            setMermaids((prev) => prev.filter((mermaid) => mermaid.id !== id));
-            setEditingMermaidId((prev) => prev === id ? null : prev);
-            return;
-        }
-
-        const response = await fetch(`/api/mermaids/${id}`, {
-            method: "DELETE",
-        });
-        const data = await response.json();
-
-        if (!response.ok || !data.ok) {
-            setPermissionMessage(data.message ?? "The Mermaid card could not be deleted.");
-            return;
-        }
-
         setMermaids((prev) => prev.filter((mermaid) => mermaid.id !== id));
         setEditingMermaidId((prev) => prev === id ? null : prev);
     };

@@ -1,23 +1,13 @@
 import { RefObject, useState } from "react";
+import { nextPositiveId, type BoardMemo } from "@/lib/board-state";
 
-export type BoardMemo = {
-    id: number;
-    boardId: number;
-    content: string;
-    x: number;
-    y: number;
-    z: number;
-    width: number;
-    height: number;
-    color: string;
-};
+export type { BoardMemo } from "@/lib/board-state";
 
 type UseBoardMemosOptions = {
     initialMemos: BoardMemo[];
     boardId: number;
     boardZoom: number;
     cardLocationRef: RefObject<HTMLDivElement | null>;
-    setPermissionMessage: (message: string) => void;
 };
 
 export function useBoardMemos({
@@ -25,7 +15,6 @@ export function useBoardMemos({
     boardId,
     boardZoom,
     cardLocationRef,
-    setPermissionMessage,
 }: UseBoardMemosOptions) {
     const [memos, setMemos] = useState(initialMemos);
     const [editingMemoId, setEditingMemoId] = useState<number | null>(null);
@@ -60,41 +49,15 @@ export function useBoardMemos({
     };
 
     const handleInsertMemo = async (tempId: number, boardId: number, content: string, x: number, y: number, z: number, width: number, height: number, color: string) => {
-        const response = await fetch("/api/memos", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                boardId, content, x, y, z, width, height, color
-            }),
+        setMemos((prev) => {
+            const id = nextPositiveId(prev.map((memo) => memo.id));
+            return prev.map((memo) => memo.id === tempId
+                ? { id, boardId, content, x, y, z, width, height, color }
+                : memo);
         });
-
-        const data = await response.json();
-        if (!response.ok || !data.ok) {
-            setPermissionMessage(data.message ?? "The memo could not be created.");
-            return;
-        }
-        setMemos((prev) =>
-            prev.map((memo) =>
-                memo.id === tempId ? { ...data.memo, isNew: false } : memo
-            )
-        );
     };
 
     const handleUpdateMemo = async (id: number, boardId: number, content: string, x: number, y: number, z: number, width: number, height: number, color: string) => {
-        const response = await fetch(`/api/memos/${id}`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ boardId, content, x, y, z, width, height, color }),
-        });
-        const data = await response.json();
-        if (!data.ok) {
-            setPermissionMessage(data.message ?? "The memo could not be updated.");
-            return;
-        }
         setMemos((prev) =>
             prev.map((memo) =>
                 memo.id === id ? { ...memo, content, x, y, z, width, height, color } : memo
@@ -103,21 +66,6 @@ export function useBoardMemos({
     };
 
     const handleDeleteMemo = async (id: number) => {
-        if (id < 0) {
-            setMemos((prev) =>
-                prev.filter((memo) => memo.id !== id));
-            setEditingMemoId((prev) => prev === id ? null : prev);
-            return;
-        }
-
-        const response = await fetch(`/api/memos/${id}`, {
-            method: "DELETE",
-        });
-        const data = await response.json();
-        if (!data.ok) {
-            setPermissionMessage(data.message ?? "The memo could not be deleted.");
-            return;
-        }
         setMemos((prev) => prev.filter((memo) => memo.id !== id));
         setEditingMemoId((prev) => prev === id ? null : prev);
     };

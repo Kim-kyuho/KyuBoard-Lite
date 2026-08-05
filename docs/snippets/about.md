@@ -11,10 +11,6 @@
 - [보드 줌과 패닝](./board-zoom-and-pan.md)
 - [Rnd 카드 조작](./rnd-card-controls.md)
 - [컨텍스트 메뉴](./context-menu.md)
-- [DB 저장 흐름](./db-save-flow.md)
-- [API Route 예외처리](./api-route-patterns.md)
-- [인증과 권한](./auth-and-permission.md)
-- [이미지 업로드](./image-upload.md)
 - [UI 피드백](./ui-feedback.md)
 
 ## 기준
@@ -23,4 +19,3 @@
 - `useRef`: 렌더링과 무관한 임시 값, DOM 참조, 타이머 ID
 - `useEffect`: document/window 전역 이벤트 연결
 - `useCallback`: 외부 값에 의존하는 저장/이동/포커스 함수
-- API Route: 권한 체크, 입력 검증, DB 처리, 예외처리 순서로 구성

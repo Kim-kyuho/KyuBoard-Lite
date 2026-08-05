@@ -74,7 +74,7 @@ type TableSource = {
 
 - `tableSourceSchema`(14~17줄): Zod로 최소 컬럼 1개·행 1개 강제 — `deleteColumn`/`deleteSelectedRows`의 "마지막 하나는 거부" 런타임 로직과 스키마 제약이 이중으로 일치해야 한다.
 - `createTableItemId()`(21~22줄): `Date.now().toString(36)-Math.random().toString(36)` 조합, DB 시퀀스가 아닌 클라이언트 생성 문자열 id.
-- `tableSourceToMarkdown()`(29~37줄): `|`는 `\|`로, 개행은 `<br>`로 이스케이프(24~27줄) 후 GFM 표 문자열 생성 — `app/api/boards/[boardId]/markdown/route.ts`가 이 함수를 그대로 사용.
+- `tableSourceToMarkdown()`: `|`는 `\|`로, 개행은 `<br>`로 이스케이프한 뒤 GFM 표 문자열 생성 — `lib/board-markdown.ts`가 이 함수를 사용한다.
 
 ## 알려진 특이사항
 

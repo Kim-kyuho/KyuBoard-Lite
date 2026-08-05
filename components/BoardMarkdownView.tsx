@@ -10,9 +10,10 @@ import rehypeSanitize from "rehype-sanitize";
 import PressableButton from "@/components/PressableButton";
 import { useBoardMarkdown } from "@/hooks/useBoardMarkdown";
 import { useMermaidRenderer } from "@/hooks/useMermaidRenderer";
+import type { BoardSnapshot } from "@/lib/board-state";
 
 type BoardMarkdownViewProps = {
-    boardId: number;
+    snapshot: BoardSnapshot;
     onClose: () => void;
 };
 
@@ -42,14 +43,14 @@ function MarkdownMermaid({ source, diagramId }: { source: string; diagramId: num
     );
 }
 
-export default function BoardMarkdownView({ boardId, onClose }: BoardMarkdownViewProps) {
+export default function BoardMarkdownView({ snapshot, onClose }: BoardMarkdownViewProps) {
     const {
         markdown,
         markdownSections,
         errorMessage,
         loading,
         handleMarkdownDownload,
-    } = useBoardMarkdown(boardId);
+    } = useBoardMarkdown(snapshot);
 
     return createPortal(
         <>

@@ -1,23 +1,13 @@
 import { RefObject, useState } from "react";
+import { nextPositiveId, type BoardImage } from "@/lib/board-state";
 
-export type BoardImage = {
-    imageId: number;
-    boardId: number;
-    url: string;
-    label: string | null;
-    x: number;
-    y: number;
-    z: number;
-    width: number;
-    height: number;
-};
+export type { BoardImage } from "@/lib/board-state";
 
 type UseBoardImagesOptions = {
     initialImages: BoardImage[];
     boardId: number;
     boardZoom: number;
     cardLocationRef: RefObject<HTMLDivElement | null>;
-    setMessage: (message: string) => void;
 };
 
 const getImageSize = (url: string) =>
@@ -46,7 +36,6 @@ export function useBoardImages({
     boardId,
     boardZoom,
     cardLocationRef,
-    setMessage,
 }: UseBoardImagesOptions) {
     const [images, setImages] = useState(initialImages);
     const [editingImageId, setEditingImageId] = useState<number | null>(null);
@@ -62,29 +51,19 @@ export function useBoardImages({
             ? Math.max(0, (locationElement.scrollTop + locationElement.clientHeight / 2) / boardZoom - height / 2)
             : 0;
 
-        const response = await fetch("/api/images", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                boardId,
-                url,
-                label: label || null,
-                x: Math.round(x),
-                y: Math.round(y),
-                z: 1,
-                width,
-                height,
-            }),
-        });
-        const data = await response.json();
-
-        if (!response.ok || !data.ok) {
-            setMessage(data.message ?? "The image URL could not be saved.");
-            return false;
-        }
-
-        setImages((prev) => [...prev, data.image]);
-        setEditingImageId(data.image.imageId);
+        const imageId = nextPositiveId(images.map((image) => image.imageId));
+        setImages((prev) => [...prev, {
+            imageId,
+            boardId,
+            url,
+            label: label || null,
+            x: Math.round(x),
+            y: Math.round(y),
+            z: 1,
+            width,
+            height,
+        }]);
+        setEditingImageId(imageId);
         return true;
     };
 
@@ -99,32 +78,12 @@ export function useBoardImages({
         width: number,
         height: number,
     ) => {
-        const response = await fetch(`/api/images/${imageId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ boardId, url, label, x, y, z, width, height }),
-        });
-        const data = await response.json();
-
-        if (!response.ok || !data.ok) {
-            setMessage(data.message ?? "The image could not be updated.");
-            return;
-        }
-
         setImages((prev) => prev.map((image) => image.imageId === imageId
             ? { ...image, boardId, url, label, x, y, z, width, height }
             : image));
     };
 
     const handleDeleteImage = async (imageId: number) => {
-        const response = await fetch(`/api/images/${imageId}`, { method: "DELETE" });
-        const data = await response.json();
-
-        if (!response.ok || !data.ok) {
-            setMessage(data.message ?? "The image could not be deleted.");
-            return;
-        }
-
         setImages((prev) => prev.filter((image) => image.imageId !== imageId));
         setEditingImageId(null);
     };

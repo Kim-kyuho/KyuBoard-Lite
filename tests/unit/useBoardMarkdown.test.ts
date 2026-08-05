@@ -1,64 +1,55 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { useBoardMarkdown } from "@/hooks/useBoardMarkdown";
+import { createEmptyBoardSnapshot, type BoardSnapshot } from "@/lib/board-state";
+
+function markdownSnapshot(): BoardSnapshot {
+    return {
+        ...createEmptyBoardSnapshot(),
+        memos: [{
+            id: 1, boardId: 1, content: "<h1>Title</h1><p>End</p>",
+            x: 10, y: 10, z: 1, width: 100, height: 100, color: "#fffadc",
+        }],
+        mermaids: [{
+            id: 1, boardId: 1, source: "flowchart LR\nA-->B",
+            x: 0, y: 0, z: 2, width: 50, height: 50,
+        }],
+    };
+}
 
 describe("useBoardMarkdown", () => {
-    afterEach(() => {
+    it("compiles local board state and separates Mermaid source blocks", () => {
+        const { result } = renderHook(() => useBoardMarkdown(markdownSnapshot()));
+        expect(result.current.loading).toBe(false);
+        expect(result.current.errorMessage).toBe("");
+        expect(result.current.markdown).toContain("# Title");
+        expect(result.current.markdown).toContain("```mermaid");
+        expect(result.current.markdownSections).toContain("flowchart LR\nA-->B\n");
+    });
+
+    it("compiles overlapping URL images without a server request", () => {
+        const snapshot = markdownSnapshot();
+        snapshot.mermaids = [];
+        snapshot.images = [{
+            imageId: 1, boardId: 1, url: "https://example.com/a.png", label: "A",
+            x: 0, y: 0, z: 2, width: 50, height: 50,
+        }];
+        const fetchMock = vi.fn();
+        vi.stubGlobal("fetch", fetchMock);
+        const { result } = renderHook(() => useBoardMarkdown(snapshot));
+        expect(result.current.markdown).toContain("![A](https://example.com/a.png)");
+        expect(fetchMock).not.toHaveBeenCalled();
         vi.unstubAllGlobals();
     });
 
-    it("loads markdown and separates Mermaid source blocks", async () => {
-        const markdown = "# Title\n\n```mermaid\nflowchart LR\nA-->B\n```\n\nEnd";
-        vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-            ok: true,
-            json: vi.fn().mockResolvedValue({ ok: true, markdown }),
-        }));
-
-        const { result } = renderHook(() => useBoardMarkdown(3));
-
-        await waitFor(() => expect(result.current.loading).toBe(false));
-        expect(fetch).toHaveBeenCalledWith("/api/boards/3/markdown", expect.objectContaining({
-            signal: expect.any(AbortSignal),
-        }));
-        expect(result.current.markdown).toBe(markdown);
-        expect(result.current.markdownSections).toEqual([
-            "# Title\n\n",
-            "flowchart LR\nA-->B\n",
-            "\n\nEnd",
-        ]);
-    });
-
-    it("uses the server error and handles a rejected request", async () => {
-        const fetchMock = vi.fn()
-            .mockResolvedValueOnce({
-                ok: false,
-                json: vi.fn().mockResolvedValue({ ok: false, message: "Denied" }),
-            })
-            .mockRejectedValueOnce(new Error("network"));
-        vi.stubGlobal("fetch", fetchMock);
-
-        const first = renderHook(() => useBoardMarkdown(1));
-        await waitFor(() => expect(first.result.current.errorMessage).toBe("Denied"));
-        first.unmount();
-
-        const second = renderHook(() => useBoardMarkdown(2));
-        await waitFor(() => expect(second.result.current.errorMessage)
-            .toBe("Markdown document could not be generated."));
-    });
-
-    it("downloads the generated markdown and revokes the object URL", async () => {
-        vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-            ok: true,
-            json: vi.fn().mockResolvedValue({ ok: true, markdown: "# Board" }),
-        }));
+    it("downloads the generated markdown and revokes the object URL", () => {
         const createObjectURL = vi.fn().mockReturnValue("blob:test");
         const revokeObjectURL = vi.fn();
         Object.defineProperty(URL, "createObjectURL", { configurable: true, value: createObjectURL });
         Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: revokeObjectURL });
         const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
 
-        const { result } = renderHook(() => useBoardMarkdown(8));
-        await waitFor(() => expect(result.current.loading).toBe(false));
+        const { result } = renderHook(() => useBoardMarkdown(markdownSnapshot()));
         act(() => result.current.handleMarkdownDownload());
 
         expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));

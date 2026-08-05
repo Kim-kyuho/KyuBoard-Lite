@@ -1,8 +1,5 @@
 import { Dispatch, SetStateAction } from "react";
-import { BoardImage } from "@/hooks/useBoardImages";
-import { BoardMemo } from "@/hooks/useBoardMemos";
-import { BoardMermaid } from "@/hooks/useBoardMermaids";
-import { BoardTable } from "@/hooks/useBoardTables";
+import type { BoardImage, BoardMemo, BoardMermaid, BoardTable } from "@/lib/board-state";
 
 export type CardLayerType = "memo" | "image" | "mermaid" | "table";
 export type CardLayerAction = "front" | "back";
@@ -14,78 +11,55 @@ type CardLayer = {
 };
 
 type UseCardLayerOptions = {
-    boardId: number;
+    memos: BoardMemo[];
+    images: BoardImage[];
+    mermaids: BoardMermaid[];
+    tables: BoardTable[];
     setMemos: Dispatch<SetStateAction<BoardMemo[]>>;
     setImages: Dispatch<SetStateAction<BoardImage[]>>;
     setMermaids: Dispatch<SetStateAction<BoardMermaid[]>>;
     setTables: Dispatch<SetStateAction<BoardTable[]>>;
-    setPermissionMessage: (message: string) => void;
 };
 
+const typeOrder: Record<CardLayerType, number> = { memo: 0, image: 1, mermaid: 2, table: 3 };
+
 export function useCardLayer({
-    boardId,
+    memos,
+    images,
+    mermaids,
+    tables,
     setMemos,
     setImages,
     setMermaids,
     setTables,
-    setPermissionMessage,
 }: UseCardLayerOptions) {
     const applyCardLayers = (cards: CardLayer[]) => {
-        const memoLayers = new Map(cards.filter((card) => card.type === "memo").map((card) => [card.id, card.z]));
-        const imageLayers = new Map(cards.filter((card) => card.type === "image").map((card) => [card.id, card.z]));
-        const mermaidLayers = new Map(cards.filter((card) => card.type === "mermaid").map((card) => [card.id, card.z]));
-        const tableLayers = new Map(cards.filter((card) => card.type === "table").map((card) => [card.id, card.z]));
-
-        setMemos((prev) =>
-            prev.map((memo) =>
-                memoLayers.has(memo.id) ? { ...memo, z: memoLayers.get(memo.id)! } : memo
-            )
-        );
-        setImages((prev) =>
-            prev.map((image) =>
-                imageLayers.has(image.imageId) ? { ...image, z: imageLayers.get(image.imageId)! } : image
-            )
-        );
-        setMermaids((prev) =>
-            prev.map((mermaid) =>
-                mermaidLayers.has(mermaid.id) ? { ...mermaid, z: mermaidLayers.get(mermaid.id)! } : mermaid
-            )
-        );
-        setTables((prev) =>
-            prev.map((table) =>
-                tableLayers.has(table.id) ? { ...table, z: tableLayers.get(table.id)! } : table
-            )
-        );
+        const layers = new Map(cards.map((card) => [`${card.type}:${card.id}`, card.z]));
+        setMemos((prev) => prev.map((memo) => ({ ...memo, z: layers.get(`memo:${memo.id}`) ?? memo.z })));
+        setImages((prev) => prev.map((image) => ({ ...image, z: layers.get(`image:${image.imageId}`) ?? image.z })));
+        setMermaids((prev) => prev.map((mermaid) => ({ ...mermaid, z: layers.get(`mermaid:${mermaid.id}`) ?? mermaid.z })));
+        setTables((prev) => prev.map((table) => ({ ...table, z: layers.get(`table:${table.id}`) ?? table.z })));
     };
 
-    const handleCardLayer = async (type: CardLayerType, id: number, action: CardLayerAction) => {
-        if (id < 0) {
-            return;
-        }
+    const handleCardLayer = (type: CardLayerType, id: number, action: CardLayerAction) => {
+        if (id < 0) return;
 
-        const response = await fetch("/api/cards/layer", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                boardId,
-                type,
-                id,
-                action,
-            }),
-        });
-        const data = await response.json();
+        const cards: CardLayer[] = [
+            ...memos.map((memo) => ({ type: "memo" as const, id: memo.id, z: memo.z })),
+            ...images.map((image) => ({ type: "image" as const, id: image.imageId, z: image.z })),
+            ...mermaids.map((mermaid) => ({ type: "mermaid" as const, id: mermaid.id, z: mermaid.z })),
+            ...tables.map((table) => ({ type: "table" as const, id: table.id, z: table.z })),
+        ].sort((left, right) => left.z - right.z || typeOrder[left.type] - typeOrder[right.type] || left.id - right.id);
 
-        if (!response.ok || !data.ok) {
-            setPermissionMessage(data.message ?? "Card layer could not be updated.");
-            return;
-        }
+        const targetIndex = cards.findIndex((card) => card.type === type && card.id === id);
+        if (targetIndex < 0) return;
 
-        applyCardLayers(data.cards ?? []);
+        const [target] = cards.splice(targetIndex, 1);
+        if (action === "front") cards.push(target);
+        else cards.unshift(target);
+
+        applyCardLayers(cards.map((card, index) => ({ ...card, z: index + 1 })));
     };
 
-    return {
-        handleCardLayer,
-    };
+    return { handleCardLayer };
 }

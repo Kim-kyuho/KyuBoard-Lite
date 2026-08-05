@@ -52,5 +52,16 @@ test.describe("보드 작업 화면", () => {
         await page.getByRole("button", { name: "Close Markdown view" }).click();
         await expect(markdownView).toBeHidden();
     });
-});
 
+    test("Mermaid 소스 변경을 새로고침 없이 렌더링한다", async ({ page }) => {
+        await getBoardToolButton(page, "lucide-workflow").click();
+
+        const sourceEditor = page.locator("textarea");
+        await expect(sourceEditor).toBeVisible();
+        await sourceEditor.fill("flowchart TD\nA[Live preview] --> B[Without reload]");
+
+        const renderedDiagram = page.locator(".mermaid-rendered");
+        await expect(renderedDiagram).toContainText("Live preview");
+        await expect(renderedDiagram).toContainText("Without reload");
+    });
+});

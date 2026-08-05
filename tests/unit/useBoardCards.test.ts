@@ -46,30 +46,28 @@ describe("board card collection hooks", () => {
     afterEach(() => vi.unstubAllGlobals());
 
     it("creates and persists memos without an authentication gate", async () => {
-        const inserted = { ...memo, id: 10, content: "created" };
-        vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-            ok: true,
-            json: vi.fn().mockResolvedValue({ ok: true, memo: inserted }),
-        }));
+        const fetchMock = vi.fn();
+        vi.stubGlobal("fetch", fetchMock);
         const { result } = renderHook(() => useBoardMemos({
             initialMemos: [memo], boardId: 5, boardZoom: 2,
-            cardLocationRef: locationRef, setPermissionMessage: vi.fn(),
+            cardLocationRef: locationRef,
         }));
 
         act(() => result.current.handleCreateTempMemo());
         expect(result.current.memos[1]).toMatchObject({ id: -1000, x: 250, y: 150 });
         await act(async () => result.current.handleInsertMemo(-1000, 5, "created", 1, 2, 3, 300, 200, "#fff"));
-        expect(result.current.memos.some((item) => item.id === 10)).toBe(true);
+        expect(result.current.memos.some((item) => item.id === 2 && item.content === "created")).toBe(true);
+        expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it("creates Mermaid and table drafts in the visible center", () => {
         const mermaids = renderHook(() => useBoardMermaids({
             initialMermaids: [mermaid], boardId: 5, boardZoom: 2,
-            cardLocationRef: locationRef, setPermissionMessage: vi.fn(),
+            cardLocationRef: locationRef,
         }));
         const tables = renderHook(() => useBoardTables({
             initialTables: [table], boardId: 5, boardZoom: 2,
-            cardLocationRef: locationRef, setPermissionMessage: vi.fn(),
+            cardLocationRef: locationRef,
         }));
 
         act(() => mermaids.result.current.handleCreateTempMermaid());
@@ -89,13 +87,9 @@ describe("board card collection hooks", () => {
             }
         }
         vi.stubGlobal("Image", MockImage);
-        vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-            ok: true,
-            json: vi.fn().mockResolvedValue({ ok: true, image }),
-        }));
         const { result } = renderHook(() => useBoardImages({
             initialImages: [], boardId: 5, boardZoom: 2,
-            cardLocationRef: locationRef, setMessage: vi.fn(),
+            cardLocationRef: locationRef,
         }));
 
         let created = false;
@@ -103,24 +97,16 @@ describe("board card collection hooks", () => {
             created = await result.current.handleCreateImage(image.url, "image.png");
         });
         expect(created).toBe(true);
-        expect(fetch).toHaveBeenCalledWith("/api/images", expect.objectContaining({
-            method: "POST",
-            body: JSON.stringify({
-                boardId: 5, url: image.url, label: "image.png",
-                x: 200, y: 100, z: 1, width: 400, height: 300,
-            }),
-        }));
-        expect(result.current.images).toEqual([image]);
-        expect(result.current.editingImageId).toBe(2);
+        expect(result.current.images).toEqual([{
+            ...image, imageId: 1, x: 200, y: 100, z: 1,
+        }]);
+        expect(result.current.editingImageId).toBe(1);
     });
 
     it("updates and deletes a persisted URL image", async () => {
-        vi.stubGlobal("fetch", vi.fn()
-            .mockResolvedValueOnce({ ok: true, json: vi.fn().mockResolvedValue({ ok: true }) })
-            .mockResolvedValueOnce({ ok: true, json: vi.fn().mockResolvedValue({ ok: true }) }));
         const { result } = renderHook(() => useBoardImages({
             initialImages: [image], boardId: 5, boardZoom: 2,
-            cardLocationRef: locationRef, setMessage: vi.fn(),
+            cardLocationRef: locationRef,
         }));
 
         await act(async () => result.current.handleUpdateImage(2, 5, "https://example.com/new.png", "new", 1, 2, 3, 4, 5));

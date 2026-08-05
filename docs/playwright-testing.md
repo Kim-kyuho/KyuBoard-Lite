@@ -2,25 +2,23 @@
 
 ## 테스트 범위
 
-현재 E2E 테스트는 단일 보드 진입과 SQLite 상태를 변경하지 않는 화면 흐름부터 검증한다.
+현재 E2E 테스트는 단일 보드 진입, 브라우저 SQLite 초기화와 Export를 포함한 화면 흐름을 검증한다.
 
-- 보드 목록과 공통 메뉴
-- 로그인/가입 모달
+- 단일 보드와 공통 메뉴
+- 인증 UI가 없는지 확인
 - 보드 레이어 렌더링
 - 줌 컨트롤
 - 메모 검색 패널
 - Markdown 컴파일 모달
 - Desktop Chromium, iPhone Safari, iPad Safari
 
-카드 생성·수정·삭제는 고정된 테스트 DB와 사용자 계정 fixture가 준비된 뒤 별도 spec으로 추가한다.
+각 Playwright browser context는 자신의 origin별 IndexedDB를 사용한다.
 
 ## 최초 설치
 
 ```bash
 npm run test:e2e:install
 ```
-
-Docker에서 실행할 경우 Playwright 브라우저와 OS 의존성이 이미지에 설치되어 있어야 한다.
 
 ## 기본 실행
 
@@ -78,14 +76,6 @@ PLAYWRIGHT_BASE_URL=https://kyu-board.vercel.app npm run test:e2e
 ```
 
 `PLAYWRIGHT_BASE_URL`이 있으면 Playwright는 로컬 Next 서버를 실행하지 않는다.
-
-## 테스트 보드 고정
-
-```bash
-E2E_BOARD_ID=13 npm run test:e2e
-```
-
-`E2E_BOARD_ID`가 없으면 보드 목록의 첫 번째 보드를 사용한다. 목록에 보드가 하나도 없으면 보드 작업 화면 spec만 skip한다.
 
 ## 디버깅용 단일 조합
 

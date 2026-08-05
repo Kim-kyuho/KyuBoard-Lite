@@ -1,48 +1,32 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { getSqlite } from "@/lib/db";
-import { createSaveFile, importSaveFile } from "@/lib/db/save-file";
+import { describe, expect, it } from "vitest";
+import {
+    createEmptyBoardSnapshot,
+    nextPositiveId,
+    parseBoardSnapshot,
+} from "@/lib/board-state";
 
-const previousDataDirectory = process.env.KYUBOARD_DATA_DIR;
-const testDataDirectory = mkdtempSync(path.join(tmpdir(), "kyuboard-test-"));
+describe("browser SQLite board snapshots", () => {
+    it("accepts a complete local board snapshot", () => {
+        const snapshot = createEmptyBoardSnapshot();
+        snapshot.memos.push({
+            id: 1, boardId: 1, content: "Saved memo", x: 1, y: 2, z: 3,
+            width: 300, height: 200, color: "#fffadc",
+        });
 
-describe("SQLite save files", () => {
-    beforeAll(() => {
-        process.env.KYUBOARD_DATA_DIR = testDataDirectory;
+        expect(parseBoardSnapshot(snapshot)).toEqual(snapshot);
     });
 
-    afterAll(() => {
-        getSqlite().close();
-        delete (globalThis as typeof globalThis & { kyuboardDatabase?: unknown }).kyuboardDatabase;
-        if (previousDataDirectory === undefined) delete process.env.KYUBOARD_DATA_DIR;
-        else process.env.KYUBOARD_DATA_DIR = previousDataDirectory;
-        rmSync(testDataDirectory, { recursive: true, force: true });
+    it("rejects invalid imported board data", () => {
+        const snapshot = createEmptyBoardSnapshot();
+        snapshot.images.push({
+            imageId: 1, boardId: 1, url: "javascript:alert(1)", label: null,
+            x: 0, y: 0, z: 1, width: 400, height: 300,
+        });
+
+        expect(() => parseBoardSnapshot(snapshot)).toThrow(/invalid KyuBoard Lite data/i);
     });
 
-    it("exports a consistent SQLite snapshot and restores it transactionally", async () => {
-        const sqlite = getSqlite();
-        sqlite.prepare("UPDATE boards SET title = ? WHERE board_id = 1").run("Saved board");
-        sqlite.prepare(`
-            INSERT INTO memos (board_id, content, x, y, z, width, height, color)
-            VALUES (1, 'Saved memo', 1, 2, 3, 300, 200, '#fffadc')
-        `).run();
-
-        const saveFile = await createSaveFile();
-        expect(saveFile.subarray(0, 16).toString("utf8")).toBe("SQLite format 3\0");
-
-        sqlite.prepare("UPDATE boards SET title = ? WHERE board_id = 1").run("Changed board");
-        sqlite.prepare("DELETE FROM memos").run();
-        importSaveFile(saveFile);
-
-        const board = sqlite.prepare("SELECT title FROM boards WHERE board_id = 1").get() as { title: string };
-        const memo = sqlite.prepare("SELECT content FROM memos").get() as { content: string };
-        expect(board.title).toBe("Saved board");
-        expect(memo.content).toBe("Saved memo");
-    });
-
-    it("rejects files that are not SQLite databases", () => {
-        expect(() => importSaveFile(Buffer.from("not a database"))).toThrow(/not a SQLite database/i);
+    it("allocates positive ids after imported records", () => {
+        expect(nextPositiveId([-10, 2, 8, 3])).toBe(9);
     });
 });

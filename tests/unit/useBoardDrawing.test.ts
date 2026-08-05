@@ -10,23 +10,15 @@ const existingStroke: BoardStroke = {
     points: [[0, 0], [10, 10]],
 };
 
-const setPermissionMessage = vi.fn();
-
 function setup(initialStrokes: BoardStroke[] = []) {
     return renderHook(() => useBoardDrawing({
         initialStrokes,
-        boardId: 5,
-        setPermissionMessage,
     }));
 }
 
 describe("useBoardDrawing", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({ ok: true }),
-        }));
     });
 
     afterEach(() => {
@@ -58,7 +50,7 @@ describe("useBoardDrawing", () => {
         expect(result.current.strokes).toHaveLength(0);
     });
 
-    it("saves once when drawing mode turns off after a change", async () => {
+    it("keeps the changed strokes when drawing mode turns off", async () => {
         const { result } = setup();
 
         act(() => result.current.handleToggleDrawingMode());
@@ -66,19 +58,16 @@ describe("useBoardDrawing", () => {
         await act(async () => result.current.handleToggleDrawingMode());
 
         expect(result.current.drawingMode).toBe(false);
-        expect(fetch).toHaveBeenCalledTimes(1);
-        expect(fetch).toHaveBeenCalledWith("/api/drawings/5", expect.objectContaining({
-            method: "PATCH",
-        }));
+        expect(result.current.strokes).toHaveLength(1);
     });
 
-    it("does not save when nothing was drawn", async () => {
+    it("keeps an empty drawing unchanged", async () => {
         const { result } = setup();
 
         act(() => result.current.handleToggleDrawingMode());
         await act(async () => result.current.handleToggleDrawingMode());
 
-        expect(fetch).not.toHaveBeenCalled();
+        expect(result.current.strokes).toEqual([]);
     });
 
     it("undoes the last stroke", () => {
@@ -135,37 +124,23 @@ describe("useBoardDrawing", () => {
         expect(result.current.strokes[1].points).toEqual([[30, 0], [40, 0]]);
     });
 
-    it("saves after erasing when drawing mode turns off", async () => {
+    it("keeps an erased result when drawing mode turns off", async () => {
         const { result } = setup([existingStroke]);
 
         act(() => result.current.handleToggleDrawingMode());
         act(() => result.current.handleErase([0, 0], [0, 0], 50));
         await act(async () => result.current.handleToggleDrawingMode());
 
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(result.current.strokes).toEqual([]);
     });
 
-    it("does not save when the eraser touches nothing", async () => {
+    it("does not change strokes when the eraser touches nothing", async () => {
         const { result } = setup([existingStroke]);
 
         act(() => result.current.handleToggleDrawingMode());
         act(() => result.current.handleErase([9999, 9999], [9999, 9999], 5));
         await act(async () => result.current.handleToggleDrawingMode());
 
-        expect(fetch).not.toHaveBeenCalled();
-    });
-
-    it("reports a message when saving fails", async () => {
-        vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-            ok: false,
-            json: async () => ({ ok: false, message: "Save failed." }),
-        }));
-        const { result } = setup();
-
-        act(() => result.current.handleToggleDrawingMode());
-        act(() => result.current.handleStrokeEnd([[1, 2], [3, 4]]));
-        await act(async () => result.current.handleToggleDrawingMode());
-
-        expect(setPermissionMessage).toHaveBeenCalledWith("Save failed.");
+        expect(result.current.strokes).toEqual([existingStroke]);
     });
 });

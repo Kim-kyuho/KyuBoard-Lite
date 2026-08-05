@@ -103,6 +103,7 @@ export default function MemoEditor({
   onChange: (content: string) => void;
 }) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         hardBreak: false,
