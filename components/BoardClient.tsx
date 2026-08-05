@@ -267,7 +267,6 @@ export default function BoardClient() {
         <input
             ref={importInputRef}
             type="file"
-            accept=".sqlite,.sqlite3,.db,application/vnd.sqlite3,application/x-sqlite3"
             className="hidden"
             onChange={handleImport}
         />
