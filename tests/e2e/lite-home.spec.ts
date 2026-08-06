@@ -10,7 +10,7 @@ test.describe("KyuBoard Lite home", () => {
     test("opens the single board directly without authentication controls", async ({ page }) => {
         await expect(page).toHaveTitle(/KyuBoard Lite/i);
         await expect(page.locator(".board-scroll-layer")).toBeVisible();
-        await expect(page.getByRole("link", { name: "•kyu.board" })).toBeVisible();
+        await expect(page.getByRole("link", { name: "•kyu.board lite" })).toBeVisible();
 
         await getBoardMenuButton(page).click();
         await expect(page.getByRole("button", { name: "Export" })).toBeVisible();

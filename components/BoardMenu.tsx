@@ -40,6 +40,9 @@ export default function BoardMenu({
                     style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none" }}
                 >
                     •kyu.board
+                    <sup className="ml-1 font-sans text-[0.6rem] font-semibold tracking-wide text-neutral-400">
+                        lite
+                    </sup>
                 </Link>
             </div>
             <PressableButton
