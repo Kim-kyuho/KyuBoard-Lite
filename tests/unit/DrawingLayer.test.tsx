@@ -104,7 +104,9 @@ describe("DrawingLayer pointer routing", () => {
     });
 
     it("renders saved strokes and shows the eraser circle only in erase mode", () => {
-        expect(renderLayer(true, "draw").querySelectorAll("path")).toHaveLength(1);
+        const drawLayer = renderLayer(true, "draw");
+        expect(drawLayer.querySelectorAll("path")).toHaveLength(1);
+        expect(drawLayer.querySelector("path")).toHaveAttribute("stroke-opacity", "0.82");
         expect(renderLayer(true, "draw").querySelector("circle")).toBeNull();
         expect(renderLayer(true, "erase").querySelector("circle")).toBeNull();
     });

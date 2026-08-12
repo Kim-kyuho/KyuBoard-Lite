@@ -282,6 +282,7 @@ export default function BoardClient() {
         />
         <BoardToolBar
             cardEditing={isEditing || drawingMode}
+            drawingMode={drawingMode}
             boardZoom={boardZoom}
             setBoardZoom={setBoardZoom}
             setMenuOpen={setMenuOpen}
@@ -304,7 +305,6 @@ export default function BoardClient() {
                 onTogglePan={handleTogglePanTool}
                 onToggleErase={handleToggleEraseTool}
                 onUndo={handleUndoStroke}
-                onDone={handleToggleDrawingMode}
             />
         )}
         {searchBarOpen && (
@@ -329,8 +329,16 @@ export default function BoardClient() {
                 onClose={() => setMarkdownViewOpen(false)}
             />
         )}
-        <BoardMessage type = "permission" message = {permissionMessage} />
-        <BoardMessage type = "memo" message = {memoMessage} />
+        <BoardMessage
+            type="permission"
+            message={permissionMessage}
+            onDismiss={() => setPermissionMessage("")}
+        />
+        <BoardMessage
+            type="memo"
+            message={memoMessage}
+            onDismiss={() => setMemoMessage("")}
+        />
     
          <main
             className="h-screen w-screen select-none bg-neutral-200"

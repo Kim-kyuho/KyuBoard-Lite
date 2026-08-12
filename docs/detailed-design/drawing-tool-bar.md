@@ -14,7 +14,6 @@
 | `onTogglePan` | `() => void` | Pan 버튼 클릭(123줄) |
 | `onToggleErase` | `() => void` | Erase 버튼 클릭(112줄) |
 | `onUndo` | `() => void` | Undo 버튼 클릭(64줄) |
-| `onDone` | `() => void` | Check(완료) 버튼 클릭(130줄) |
 
 ## State (34~35줄)
 
@@ -41,12 +40,11 @@
 | --- | --- | --- |
 | Undo (64줄) | 항상 | 클릭 즉시 `onUndo()`, 활성/비활성 조건 없음(스택이 비어도 버튼은 항상 눌림 가능 — 실제 무동작 처리는 `useBoardDrawing.handleUndoStroke`가 담당) |
 | Pen color (68줄) | 항상 | 팔레트 아이콘 색을 `penColor`로 동적 지정 |
-| 색상 팝업 (71줄) | `openColorMenu`일 때만 | `lib/board-stroke.ts`의 `penColors`(5색: Ink/Red/Blue/Green/Purple) 순회, 원형 스와치 버튼 |
+| 색상 팝업 (71줄) | `openColorMenu`일 때만 | `lib/board-stroke.ts`의 `penColors`(7색: Ink/Red/Yellow/Green/Sky/Blue/Purple) 순회, 원형 스와치 버튼 |
 | Pen width (89줄) | 항상 | `Minus` 아이콘의 `strokeWidth`로 현재 굵기 시각화 |
 | 굵기 팝업 (92줄) | `openWidthMenu`일 때만 | `penWidths`(Thin 2 / Medium 4 / Bold 8) 순회 |
 | Erase (107줄) | 항상, `aria-pressed={drawingTool==="erase"}` | 라벨이 상태에 따라 "Erase" ↔ "Stop erasing"으로 바뀜, 활성 시 아이콘이 `#ec4899`(activeToolColor) |
 | Pan (118줄) | 항상, `aria-pressed={drawingTool==="pan"}` | 라벨 "Pan the board" ↔ "Stop panning", 활성 시 동일 강조색 |
-| Finish drawing (129줄) | 항상 | `Check` 아이콘, `onDone()` |
 
 ## 도구 상태 소유자: `useBoardDrawing` (`hooks/useBoardDrawing.ts`)
 
@@ -72,5 +70,5 @@
 
 ## 알려진 특이사항
 
-- 그리기 중에는 Export와 SQLite autosave가 잠긴다. "완료" 버튼으로 모드를 종료하면 `BoardClient`의 snapshot autosave가 브라우저 SQLite에 획을 저장한다.
+- 그리기 중에는 Export와 SQLite autosave가 잠긴다. `BoardToolBar` 왼쪽 아래의 `Check` 버튼으로 모드를 종료하면 `BoardClient`의 snapshot autosave가 브라우저 SQLite에 획을 저장한다.
 - Undo 버튼은 항상 클릭 가능하게 렌더되며(disabled 처리 없음) 빈 스택에서는 `handleUndoStroke`가 조용히 아무 것도 하지 않는다 — 사용자에게 "더 이상 undo할 게 없다"는 피드백이 없다.

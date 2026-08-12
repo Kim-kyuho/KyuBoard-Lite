@@ -1,6 +1,8 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import BoardMenu from "@/components/BoardMenu";
+import BoardMessage from "@/components/BoardMessage";
+import BoardToolBar from "@/components/BoardToolBar";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ImageUrlModal from "@/components/ImageUrlModal";
 import PressableButton from "@/components/PressableButton";
@@ -69,5 +71,69 @@ describe("Lite board controls", () => {
 
         expect(screen.getByRole("button", { name: "Export" })).toBeDisabled();
         expect(screen.getByText("Finish editing before exporting.")).toBeVisible();
+    });
+});
+
+describe("Beta board toolbar layout", () => {
+    const renderToolbar = (cardEditing: boolean, drawingMode: boolean) => render(
+        <BoardToolBar
+            cardEditing={cardEditing}
+            drawingMode={drawingMode}
+            boardZoom={1}
+            setBoardZoom={vi.fn()}
+            setMenuOpen={vi.fn()}
+            setSearchBarOpen={vi.fn()}
+            onFocusPrevMemo={vi.fn()}
+            onFocusNextMemo={vi.fn()}
+            onMemoCreateClick={vi.fn()}
+            onImageUploadClick={vi.fn()}
+            onMermaidCreateClick={vi.fn()}
+            onTableCreateClick={vi.fn()}
+            onDrawingToggleClick={vi.fn()}
+        />
+    );
+
+    it("keeps drawing start and finish in the separate lower-left control", () => {
+        const { rerender } = renderToolbar(false, false);
+        const startButton = screen.getByRole("button", { name: "Start drawing" });
+        expect(startButton.parentElement).toHaveClass("bottom-10", "left-10");
+        expect(startButton).toHaveClass("text-neutral-900");
+
+        rerender(
+            <BoardToolBar
+                cardEditing
+                drawingMode
+                boardZoom={1}
+                setBoardZoom={vi.fn()}
+                setMenuOpen={vi.fn()}
+                setSearchBarOpen={vi.fn()}
+                onFocusPrevMemo={vi.fn()}
+                onFocusNextMemo={vi.fn()}
+                onMemoCreateClick={vi.fn()}
+                onImageUploadClick={vi.fn()}
+                onMermaidCreateClick={vi.fn()}
+                onTableCreateClick={vi.fn()}
+                onDrawingToggleClick={vi.fn()}
+            />
+        );
+
+        const finishButton = screen.getByRole("button", { name: "Finish drawing" });
+        expect(finishButton).toBeVisible();
+        expect(finishButton).toHaveClass("text-neutral-900");
+    });
+});
+
+describe("BoardMessage", () => {
+    afterEach(() => vi.useRealTimers());
+
+    it("dismisses a visible message after 3.5 seconds", () => {
+        vi.useFakeTimers();
+        const onDismiss = vi.fn();
+        render(<BoardMessage type="memo" message="No memos exist." onDismiss={onDismiss} />);
+
+        act(() => vi.advanceTimersByTime(3499));
+        expect(onDismiss).not.toHaveBeenCalled();
+        act(() => vi.advanceTimersByTime(1));
+        expect(onDismiss).toHaveBeenCalledOnce();
     });
 });

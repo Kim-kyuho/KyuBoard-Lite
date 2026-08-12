@@ -6,6 +6,7 @@ import {
     defaultPenWidth,
     eraseStrokesAlongPath,
     eraseStrokesInCircle,
+    penColors,
     strokeToPath,
 } from "@/lib/board-stroke";
 
@@ -15,6 +16,20 @@ const stroke = {
     width: defaultPenWidth,
     points: [[10, 20], [30, 40]],
 };
+
+describe("penColors", () => {
+    it("matches the beta marker palette", () => {
+        expect(penColors).toEqual([
+            { name: "Ink", value: "#1f2937" },
+            { name: "Red", value: "#f27f78" },
+            { name: "Yellow", value: "#edc34f" },
+            { name: "Green", value: "#6fba69" },
+            { name: "Sky", value: "#56b2d8" },
+            { name: "Blue", value: "#6678cf" },
+            { name: "Purple", value: "#ab70ce" },
+        ]);
+    });
+});
 
 describe("boardStrokesSchema", () => {
     it("accepts a valid stroke list", () => {

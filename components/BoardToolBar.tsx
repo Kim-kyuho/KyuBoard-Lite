@@ -2,11 +2,12 @@
 
 import PressableButton from "./PressableButton";
 import { Dispatch, SetStateAction } from "react";
-import { ChevronLeft, ChevronRight, ImagePlus, Pencil, Search, SquarePen, Table2, Workflow } from "lucide-react";
+import { Camera, Check, ChevronLeft, ChevronRight, Pencil, Search, SquarePen, Table2, Workflow } from "lucide-react";
 import BoardZoomControl from "./BoardZoomControl";
 
 type BoardToolBarProps = {
     cardEditing: boolean;
+    drawingMode: boolean;
     boardZoom: number;
     setBoardZoom: Dispatch<SetStateAction<number>>;
     setMenuOpen: Dispatch<SetStateAction<boolean>>;
@@ -22,6 +23,7 @@ type BoardToolBarProps = {
 
 export default function BoardToolBar({ 
     cardEditing,
+    drawingMode,
     boardZoom,
     setBoardZoom,
     setMenuOpen,
@@ -96,7 +98,7 @@ export default function BoardToolBar({
                             setMenuOpen(false);
                         }}
                     >
-                        <ImagePlus className={toolbarIconClassName} />
+                        <Camera className={toolbarIconClassName} />
                     </PressableButton>
                 </div>
                 <div>
@@ -123,19 +125,22 @@ export default function BoardToolBar({
                         <Workflow className={toolbarIconClassName} />
                     </PressableButton>
                 </div>
-                <div>
+            </div>
+            )}
+            {(!cardEditing || drawingMode) && (
+                <div className="board-toolbar fixed bottom-10 left-10 z-50000">
                     <PressableButton
-                        variant="menu"
-                        className={toolbarButtonClassName}
+                        className="flex h-12 w-12 items-center justify-center rounded-full bg-white/80 p-0 text-neutral-900 shadow-md active:scale-90"
+                        aria-label={drawingMode ? "Finish drawing" : "Start drawing"}
+                        title={drawingMode ? "Finish drawing" : "Start drawing"}
                         onClick={() => {
                             onDrawingToggleClick();
                             setMenuOpen(false);
                         }}
                     >
-                        <Pencil className={toolbarIconClassName} />
+                        {drawingMode ? <Check className="h-6 w-6" /> : <Pencil className="h-6 w-6" />}
                     </PressableButton>
                 </div>
-            </div>
             )}
             <div
                 id="card-tool-portal"

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+    ArrowLeft,
     Bold,
     BringToFront,
     Code2,
@@ -21,7 +22,6 @@ import {
     SendToBack,
     Strikethrough,
     Trash2,
-    Undo2,
 } from "lucide-react";
 import { useMemoToolBar } from "@/hooks/useMemoToolBar";
 import { CardToolButton, CardToolPortal } from "./CardToolPortal";
@@ -89,7 +89,7 @@ export default function MemoToolBar({
                                 <Palette />
                             </CardToolButton>
                             {openMemoColorMenu && (
-                                <div className="absolute right-full top-0 mr-2 flex items-center gap-1 rounded-md bg-white p-1 shadow-md">
+                                <div className="absolute right-full top-0 mr-2 grid w-40 grid-cols-4 place-items-center gap-1.5 rounded-md bg-white p-2 shadow-md">
                                     {memoColors.map((color) => (
                                         <button
                                             key={color.value}
@@ -125,7 +125,7 @@ export default function MemoToolBar({
                 {toolMode === "format" && (
                     <>
                         <CardToolButton label="Back to memo tools" onClick={openMainTools}>
-                            <Undo2 />
+                            <ArrowLeft />
                         </CardToolButton>
                         <div className="relative">
                             <CardToolButton label="Heading" onClick={toggleHeadingMenu}>
@@ -167,7 +167,7 @@ export default function MemoToolBar({
                 {toolMode === "block" && (
                     <>
                         <CardToolButton label="Back to memo tools" onClick={openMainTools}>
-                            <Undo2 />
+                            <ArrowLeft />
                         </CardToolButton>
                         <CardToolButton label="Divider" onClick={onHorizontalRule}>
                             <Minus />
