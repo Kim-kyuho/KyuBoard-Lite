@@ -2,7 +2,7 @@
 
 소스: `components/ImageCard.tsx`, `hooks/useImageCard.ts`, `hooks/useBoardImages.ts`
 
-카드 리사이즈 최소 크기는 정식 KyuBoard와 동일하게 `180 x 180`이다.
+이미지 카드의 리사이즈 최소 크기는 작은 이미지도 배치할 수 있도록 `48 x 48`이다.
 
 이미지 카드는 업로드 파일이 아니라 HTTP(S) URL, 선택적 라벨, 위치, 크기, 레이어를 가진다.
 
