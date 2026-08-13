@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ImageCard from "./ImageCard";
 import ImageUrlModal from "./ImageUrlModal";
+import AboutModal from "./AboutModal";
 import MemoCard from "@/components/MemoCard";
 import BoardMenu from "./BoardMenu";
 import BoardToolBar from "./BoardToolBar";
@@ -36,6 +37,7 @@ export default function BoardClient() {
     const boardHeight = currentBoard.height;
     const cardLocationRef = useRef<HTMLDivElement | null>(null);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [aboutOpen, setAboutOpen] = useState(false);
     const [markdownViewOpen, setMarkdownViewOpen] = useState(false);
     const [permissionMessage, setPermissionMessage] = useState("");
     const canEditCard = true;
@@ -279,6 +281,7 @@ export default function BoardClient() {
             onExport={handleExport}
             onImport={handleImportClick}
             onCompileMarkdown={() => setMarkdownViewOpen(true)}
+            onAbout={() => setAboutOpen(true)}
         />
         <BoardToolBar
             cardEditing={isEditing || drawingMode}
@@ -322,6 +325,9 @@ export default function BoardClient() {
                 onClose={() => setImageUrlOpen(false)}
                 onSubmit={handleCreateImage}
             />
+        )}
+        {aboutOpen && (
+            <AboutModal onClose={() => setAboutOpen(false)} />
         )}
         {markdownViewOpen && (
             <BoardMarkdownView

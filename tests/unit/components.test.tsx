@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import BoardMenu from "@/components/BoardMenu";
+import AboutModal from "@/components/AboutModal";
 import BoardMessage from "@/components/BoardMessage";
 import BoardToolBar from "@/components/BoardToolBar";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -67,10 +68,28 @@ describe("Lite board controls", () => {
             onExport={vi.fn()}
             onImport={vi.fn()}
             onCompileMarkdown={vi.fn()}
+            onAbout={vi.fn()}
         />);
 
         expect(screen.getByRole("button", { name: "Export" })).toBeDisabled();
+        expect(screen.getByRole("button", { name: "Export" }).querySelector(".lucide-download")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Import" }).querySelector(".lucide-folder-open")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Compile to Markdown" }).querySelector(".lucide-file-text")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "About" }).querySelector(".lucide-info")).toBeInTheDocument();
         expect(screen.getByText("Finish editing before exporting.")).toBeVisible();
+    });
+
+    it("shows contact links in the About modal and closes with Escape", () => {
+        const onClose = vi.fn();
+        render(<AboutModal onClose={onClose} />);
+
+        expect(screen.getByRole("dialog", { name: "About" })).toBeVisible();
+        expect(screen.getByRole("link", { name: /Email:/ })).toHaveAttribute("href", "mailto:kgh9002@icloud.com");
+        expect(screen.getByRole("link", { name: /GitHub:/ })).toHaveAttribute("href", "https://github.com/Kim-kyuho/");
+        expect(screen.getByRole("link", { name: /Blog:/ })).toHaveAttribute("href", "https://kyulog.vercel.app");
+
+        fireEvent.keyDown(document, { key: "Escape" });
+        expect(onClose).toHaveBeenCalledOnce();
     });
 });
 

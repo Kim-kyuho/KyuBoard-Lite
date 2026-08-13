@@ -2,7 +2,7 @@
 
 import PressableButton from "./PressableButton";
 import { Dispatch, SetStateAction } from "react";
-import { EllipsisIcon } from "lucide-react";
+import { Download, EllipsisIcon, FileText, FolderOpen, Info } from "lucide-react";
 import Link from "next/link";
 
 type BoardMenuProps = {
@@ -14,6 +14,7 @@ type BoardMenuProps = {
     onExport: () => void;
     onImport: () => void;
     onCompileMarkdown: () => void;
+    onAbout: () => void;
 };
 
 export default function BoardMenu({
@@ -25,6 +26,7 @@ export default function BoardMenu({
     onExport,
     onImport,
     onCompileMarkdown,
+    onAbout,
 }: BoardMenuProps) {
     const runAndClose = (action: () => void) => {
         setMenuOpen(false);
@@ -59,24 +61,27 @@ export default function BoardMenu({
                         variant="menu"
                         disabled={exportDisabled || transferring}
                         title={exportDisabled ? "Finish editing the current card or drawing before exporting." : "Export SQLite save file"}
-                        className="font-bold text-sky-600 disabled:cursor-not-allowed disabled:opacity-35"
+                        className="flex items-center gap-2 font-bold text-sky-600 disabled:cursor-not-allowed disabled:opacity-35"
                         onClick={() => runAndClose(onExport)}
                     >
+                        <Download aria-hidden="true" className="h-4 w-4 shrink-0" />
                         Export
                     </PressableButton>
                     <PressableButton
                         variant="menu"
                         disabled={transferring}
-                        className="font-bold text-indigo-600 disabled:cursor-not-allowed disabled:opacity-35"
+                        className="flex items-center gap-2 font-bold text-indigo-600 disabled:cursor-not-allowed disabled:opacity-35"
                         onClick={() => runAndClose(onImport)}
                     >
+                        <FolderOpen aria-hidden="true" className="h-4 w-4 shrink-0" />
                         Import
                     </PressableButton>
                     <PressableButton
                         variant="menu"
-                        className="font-bold text-pink-500"
+                        className="flex items-center gap-2 font-bold text-pink-500"
                         onClick={() => runAndClose(onCompileMarkdown)}
                     >
+                        <FileText aria-hidden="true" className="h-4 w-4 shrink-0" />
                         Compile to Markdown
                     </PressableButton>
                     {exportDisabled && (
@@ -84,6 +89,16 @@ export default function BoardMenu({
                             Finish editing before exporting.
                         </p>
                     )}
+                    <div className="mt-2 border-t border-neutral-200 pt-2">
+                        <PressableButton
+                            variant="menu"
+                            className="flex items-center gap-2 font-bold text-neutral-700"
+                            onClick={() => runAndClose(onAbout)}
+                        >
+                            <Info aria-hidden="true" className="h-4 w-4 shrink-0" />
+                            About
+                        </PressableButton>
+                    </div>
                 </div>
             )}
         </>
