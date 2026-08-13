@@ -2,6 +2,8 @@
 
 소스: `components/MermaidCard.tsx`, `hooks/useMermaidCard.ts`, `hooks/useMermaidRenderer.ts`
 
+카드 리사이즈 최소 크기는 정식 KyuBoard와 동일하게 `180 x 180`이다.
+
 ## MermaidCard Props
 
 | Prop | 타입 | 사용처 |
@@ -50,7 +52,7 @@
 
 | 요소 | 조건 | 비고 |
 | --- | --- | --- |
-| `Rnd` (90줄) | 항상 | `className="mermaid-rnd-{id} ..."`, `dragHandleClassName="mermaid-drag-handle"`, `disableDragging={!isEditing \|\| !canEdit}`, `enableResizing={isEditing}` |
+| `Rnd` (90줄) | 항상 | 최소 크기 `180 x 180`. `className="mermaid-rnd-{id} ..."`, `dragHandleClassName="mermaid-drag-handle"`, `disableDragging={!isEditing \|\| !canEdit}`, `enableResizing={isEditing}` |
 | Source textarea (126줄) | `isEditing`일 때만 | `h-2/5 min-h-24`, `font-mono`, `spellCheck={false}` — 카드 상단 40% |
 | 렌더 결과 영역 (134줄) | 항상 | 3분기: `renderError` → rose `<pre>` / `svg` → `dangerouslySetInnerHTML` / 둘 다 없음 → "Mermaid source is empty." |
 | 드래그 핸들 (150줄) | `isEditing`일 때만 | 하단 중앙, `TableCard`와 동일 시각 패턴 |
