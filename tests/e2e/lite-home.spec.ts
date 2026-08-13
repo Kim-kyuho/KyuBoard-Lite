@@ -16,6 +16,7 @@ test.describe("KyuBoard Lite home", () => {
         await expect(page.getByRole("button", { name: "Export" })).toBeVisible();
         await expect(page.getByRole("button", { name: "Import" })).toBeVisible();
         await expect(page.getByRole("button", { name: "Compile to Markdown" })).toBeVisible();
+        await expect(page.getByRole("button", { name: "About" })).toBeVisible();
         await expect(page.getByRole("button", { name: "Sign-in" })).toHaveCount(0);
         await expect(page.locator('input[type="file"]')).not.toHaveAttribute("accept");
     });
