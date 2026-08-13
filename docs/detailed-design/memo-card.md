@@ -2,6 +2,8 @@
 
 소스: `components/MemoCard.tsx`, `hooks/useMemoCard.ts`
 
+카드 리사이즈 최소 크기는 정식 KyuBoard와 동일하게 `180 x 180`이다.
+
 ## MemoCard Props
 
 | Prop | 타입 | 사용처 |
@@ -66,7 +68,7 @@
 
 | 요소 | 조건 | 비고 |
 | --- | --- | --- |
-| `Rnd` (104줄) | 항상 | `className`에 `isEditing`이면 `card-editing`, 아니면 `isFocused`일 때만 `memo-focused` 추가(106줄) — **편집 중에는 focused 스타일이 적용되지 않는다** |
+| `Rnd` (104줄) | 항상 | 최소 크기 `180 x 180`. `className`에 `isEditing`이면 `card-editing`, 아니면 `isFocused`일 때만 `memo-focused` 추가(106줄) — **편집 중에는 focused 스타일이 적용되지 않는다** |
 | 편집 모드 wrapper (137줄) | `isEditing` | `ref={memoFocusRef}`, `tabIndex={-1}`, `cursor:"text"`, 내부에 `MemoEditor` |
 | 표시 모드 wrapper (153줄) | `!isEditing` | `onDoubleClick={editMemo}`, `onPointerDown={handleDoubleTap}`, 내부에 `dangerouslySetInnerHTML={{__html: memoContent}}`인 `div.memo-editor-content` |
 | 드래그 핸들 (171줄) | `isEditing`일 때만 | 다른 카드들과 동일 패턴 |
