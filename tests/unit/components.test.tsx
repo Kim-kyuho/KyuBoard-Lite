@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import BoardMenu from "@/components/BoardMenu";
 import AboutModal from "@/components/AboutModal";
 import BoardMessage from "@/components/BoardMessage";
+import BoardNavigator from "@/components/BoardNavigator";
 import BoardToolBar from "@/components/BoardToolBar";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ImageUrlModal from "@/components/ImageUrlModal";
@@ -98,12 +99,13 @@ describe("Beta board toolbar layout", () => {
         <BoardToolBar
             cardEditing={cardEditing}
             drawingMode={drawingMode}
+            searchBarOpen={false}
+            boardNavigatorOpen={false}
             boardZoom={1}
             setBoardZoom={vi.fn()}
             setMenuOpen={vi.fn()}
             setSearchBarOpen={vi.fn()}
-            onFocusPrevMemo={vi.fn()}
-            onFocusNextMemo={vi.fn()}
+            setBoardNavigatorOpen={vi.fn()}
             onMemoCreateClick={vi.fn()}
             onImageUploadClick={vi.fn()}
             onMermaidCreateClick={vi.fn()}
@@ -122,12 +124,13 @@ describe("Beta board toolbar layout", () => {
             <BoardToolBar
                 cardEditing
                 drawingMode
+                searchBarOpen={false}
+                boardNavigatorOpen={false}
                 boardZoom={1}
                 setBoardZoom={vi.fn()}
                 setMenuOpen={vi.fn()}
                 setSearchBarOpen={vi.fn()}
-                onFocusPrevMemo={vi.fn()}
-                onFocusNextMemo={vi.fn()}
+                setBoardNavigatorOpen={vi.fn()}
                 onMemoCreateClick={vi.fn()}
                 onImageUploadClick={vi.fn()}
                 onMermaidCreateClick={vi.fn()}
@@ -139,6 +142,102 @@ describe("Beta board toolbar layout", () => {
         const finishButton = screen.getByRole("button", { name: "Finish drawing" });
         expect(finishButton).toBeVisible();
         expect(finishButton).toHaveClass("text-neutral-900");
+    });
+});
+
+describe("BoardNavigator", () => {
+    it("moves with arrows and focuses the entered memo number immediately", () => {
+        const onPrev = vi.fn();
+        const onNext = vi.fn();
+        const onMemoNumberChange = vi.fn();
+
+        render(
+            <BoardNavigator
+                currentMemoNumber={2}
+                memoCount={5}
+                onPrev={onPrev}
+                onNext={onNext}
+                onMemoNumberChange={onMemoNumberChange}
+            />
+        );
+
+        expect(screen.getByText("/ 5")).toBeVisible();
+        expect(screen.getByRole("textbox", { name: "Memo number" })).toHaveValue("2");
+        fireEvent.click(screen.getByRole("button", { name: "Previous memo" }));
+        fireEvent.click(screen.getByRole("button", { name: "Next memo" }));
+        fireEvent.change(screen.getByRole("textbox", { name: "Memo number" }), {
+            target: { value: "memo 4" },
+        });
+
+        expect(onPrev).toHaveBeenCalledOnce();
+        expect(onNext).toHaveBeenCalledOnce();
+        expect(onMemoNumberChange).toHaveBeenCalledWith(4);
+        expect(screen.getByRole("textbox", { name: "Memo number" })).toHaveValue("4");
+    });
+});
+
+describe("BoardToolBar panel controls", () => {
+    const toolbarProps = {
+        cardEditing: false,
+        drawingMode: false,
+        boardZoom: 1,
+        setBoardZoom: vi.fn(),
+        setMenuOpen: vi.fn(),
+        setSearchBarOpen: vi.fn(),
+        setBoardNavigatorOpen: vi.fn(),
+        onMemoCreateClick: vi.fn(),
+        onImageUploadClick: vi.fn(),
+        onMermaidCreateClick: vi.fn(),
+        onTableCreateClick: vi.fn(),
+        onDrawingToggleClick: vi.fn(),
+    };
+
+    it("marks the open search or navigator button with the active color", () => {
+        const { rerender } = render(
+            <BoardToolBar
+                {...toolbarProps}
+                searchBarOpen
+                boardNavigatorOpen={false}
+            />
+        );
+
+        const searchButton = screen.getByRole("button", { name: "Search memos" });
+        expect(searchButton).toHaveAttribute("aria-pressed", "true");
+        expect(searchButton.querySelector("svg")).toHaveStyle({ color: "#ec4899" });
+
+        rerender(
+            <BoardToolBar
+                {...toolbarProps}
+                searchBarOpen={false}
+                boardNavigatorOpen
+            />
+        );
+
+        const navigatorButton = screen.getByRole("button", { name: "Open memo navigator" });
+        expect(navigatorButton).toHaveAttribute("aria-pressed", "true");
+        expect(navigatorButton.querySelector("svg")).toHaveStyle({ color: "#ec4899" });
+    });
+
+    it("closes the opposite panel before toggling search or navigation", () => {
+        const setSearchBarOpen = vi.fn();
+        const setBoardNavigatorOpen = vi.fn();
+        render(
+            <BoardToolBar
+                {...toolbarProps}
+                searchBarOpen={false}
+                boardNavigatorOpen={false}
+                setSearchBarOpen={setSearchBarOpen}
+                setBoardNavigatorOpen={setBoardNavigatorOpen}
+            />
+        );
+
+        fireEvent.click(screen.getByRole("button", { name: "Open memo navigator" }));
+        expect(setSearchBarOpen).toHaveBeenCalledWith(false);
+        expect(setBoardNavigatorOpen).toHaveBeenCalledWith(expect.any(Function));
+
+        fireEvent.click(screen.getByRole("button", { name: "Search memos" }));
+        expect(setBoardNavigatorOpen).toHaveBeenCalledWith(false);
+        expect(setSearchBarOpen).toHaveBeenCalledWith(expect.any(Function));
     });
 });
 
