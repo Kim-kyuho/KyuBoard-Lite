@@ -30,3 +30,7 @@ Export는 먼저 현재 snapshot 저장을 기다린 후 SQLite 파일을 내보
 ## Import
 
 숨겨진 SQLite file input은 `useBoardTransfer`가 소유한다. Worker가 임시 DB에서 무결성, 버전, 필수 테이블, snapshot 내용을 검증하고 현재 DB를 교체한다. 검증 중 오류가 나면 현재 DB는 변경하지 않는다.
+
+## 메모 네비게이터
+
+`BoardClient`는 `boardNavigatorOpen` 상태를 소유한다. 우측 툴바의 Compass 버튼으로 하단 중앙 `BoardNavigator`를 열며, 검색 패널과는 동시에 표시하지 않는다. 현재 메모 연번과 전체 메모 수는 `useBoardMemoFocus`에서 파생한다.

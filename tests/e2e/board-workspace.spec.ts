@@ -41,6 +41,15 @@ test.describe("보드 작업 화면", () => {
         await expect(searchInput).toHaveValue("__playwright_no_matching_memo__");
     });
 
+    test("메모 네비게이터와 검색 패널을 번갈아 연다", async ({ page }) => {
+        await page.getByRole("button", { name: "Open memo navigator" }).click();
+        await expect(page.getByRole("textbox", { name: "Memo number" })).toBeVisible();
+
+        await page.getByRole("button", { name: "Search memos" }).click();
+        await expect(page.getByRole("textbox", { name: "Memo number" })).toBeHidden();
+        await expect(page.getByPlaceholder("Search memos")).toBeVisible();
+    });
+
     test("Markdown 컴파일 모달을 열고 닫는다", async ({ page }) => {
         await getBoardMenuButton(page).click();
         await page.getByRole("button", { name: "Compile to Markdown" }).click();
