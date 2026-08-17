@@ -4,6 +4,8 @@
 
 KyuBoard Lite는 로그인과 보드 목록이 없는 단일 사용자·단일 보드 앱이다. `/`에서 고정 `board_id = 1`을 바로 열며 서버 데이터베이스나 파일 업로드 기능은 없다.
 
+예외는 AI 어시스턴트 하나다. 모델 호출에는 서버가 필요하므로 `app/api/ai/*`에 라우트가 있고, 로그인이 없는 대신 어시스턴트 자체에 비밀번호가 걸려 있다. 환경변수를 넣지 않으면 어시스턴트는 꺼진 상태가 되고 나머지 기능은 그대로 동작한다. 자세한 내용은 `detailed-design/ai-assistant.md`를 본다.
+
 ## 실행 구조
 
 ```text
@@ -17,7 +19,9 @@ Next.js page (/)
                  └─ IndexedDB (`kyuboard-lite/files/database`)
 ```
 
-페이지는 정적으로 배포할 수 있다. CRUD 및 Export/Import를 포함한 데이터 작업에는 Next API Route나 서버 파일시스템을 사용하지 않는다. Worker는 작업을 순서대로 실행해 저장, Export, Import가 서로 끼어들지 않게 한다.
+CRUD 및 Export/Import를 포함한 **데이터 작업에는 Next API Route나 서버 파일시스템을 사용하지 않는다.** Worker는 작업을 순서대로 실행해 저장, Export, Import가 서로 끼어들지 않게 한다.
+
+AI 어시스턴트 라우트는 이 흐름 밖에 있다. 보드 데이터를 서버로 보내지도, 서버가 SQLite를 만지지도 않는다. 모델에 보내는 것은 대화와 카드 요약뿐이고, 돌아온 계획을 보드에 반영하는 일은 클라이언트가 한다.
 
 ## 데이터 모델
 
@@ -36,7 +40,7 @@ Next.js page (/)
 
 최초 진입 시 Worker가 WASM을 초기화하고 IndexedDB에 보존된 SQLite 파일 바이트를 deserialize한다. 데이터가 없으면 메모리 DB에 스키마와 기본 보드를 만든다. 이후 전체 snapshot을 React 상태로 전달한다.
 
-카드 훅은 네트워크 요청 없이 React 상태를 갱신한다. `BoardClient`는 카드 편집이나 드로잉 모드가 아닐 때 변경된 전체 snapshot을 150ms debounce 후 하나의 SQLite 트랜잭션으로 저장한다. 드로잉 완료 시에도 같은 저장 흐름을 사용한다.
+카드 훅은 네트워크 요청 없이 React 상태를 갱신한다. `BoardClient`는 카드 편집, 드로잉 모드, 저장하지 않은 AI 제안이 모두 아닐 때 변경된 전체 snapshot을 150ms debounce 후 하나의 SQLite 트랜잭션으로 저장한다. 드로잉 완료 시에도 같은 저장 흐름을 사용한다.
 
 ## 이미지 URL
 
@@ -44,7 +48,7 @@ Next.js page (/)
 
 ## Export
 
-Export 직전에 현재 snapshot 저장 RPC가 완료될 때까지 기다린 뒤 SQLite 메모리 DB를 serialize해 `kyuboard-lite.sqlite`로 다운로드한다. 카드 편집 또는 드로잉 모드 중에는 미완성 draft가 생길 수 있으므로 Export를 비활성화한다.
+Export 직전에 현재 snapshot 저장 RPC가 완료될 때까지 기다린 뒤 SQLite 메모리 DB를 serialize해 `kyuboard-lite.sqlite`로 다운로드한다. 카드 편집, 드로잉 모드, 저장하지 않은 AI 제안 중에는 미완성 draft가 생길 수 있으므로 Export를 비활성화한다.
 
 ## Import
 
@@ -62,6 +66,8 @@ Export 직전에 현재 snapshot 저장 RPC가 완료될 때까지 기다린 뒤
 
 ## 배포 및 보존 범위
 
-Vercel에는 Next.js 정적 페이지, Worker JavaScript, `sqlite3.wasm`만 배포된다. 데이터는 배포 서버가 아니라 각 브라우저 origin의 IndexedDB에 있으므로 서버의 읽기 전용 파일시스템 문제가 없다.
+Vercel에는 Next.js 정적 페이지, Worker JavaScript, `sqlite3.wasm`과 AI 어시스턴트 라우트 세 개(`/api/ai/status`, `/api/ai/unlock`, `/api/ai/chat`)가 배포된다. 데이터는 배포 서버가 아니라 각 브라우저 origin의 IndexedDB에 있으므로 서버의 읽기 전용 파일시스템 문제가 없다.
+
+어시스턴트를 쓰려면 `AI_API_KEY`와 `AI_PASSWORD`를 프로젝트 환경변수에 넣는다. 둘 다 서버에만 존재하고 클라이언트로 내려가지 않는다. 넣지 않으면 어시스턴트만 꺼지고 데이터베이스 관련 환경변수는 여전히 필요하지 않다.
 
 브라우저 프로필·기기·origin 사이에는 자동 동기화되지 않는다. 사이트 데이터 삭제 시 작업 DB도 삭제되므로 사용자는 Export 파일을 별도 백업해야 한다. WebAssembly, Web Worker, IndexedDB를 지원하는 최신 브라우저가 필요하다.

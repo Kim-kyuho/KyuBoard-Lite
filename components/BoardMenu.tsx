@@ -55,12 +55,12 @@ export default function BoardMenu({
                 <EllipsisIcon className="h-5 w-5 text-neutral-900" />
             </PressableButton>
             {menuOpen && (
-                <div className="fixed right-5 top-17 z-50000 w-56 rounded-xl bg-white/75 px-2 py-3 shadow-md">
+                <div className="fixed right-5 top-17 z-50001 w-56 rounded-xl bg-white/75 px-2 py-3 shadow-md">
                     <div className="px-3 py-2 font-bold text-neutral-900">{currentBoard.title}</div>
                     <PressableButton
                         variant="menu"
                         disabled={exportDisabled || transferring}
-                        title={exportDisabled ? "Finish editing the current card or drawing before exporting." : "Export SQLite save file"}
+                        title={exportDisabled ? "Finish the current card, drawing, or assistant changes before exporting." : "Export SQLite save file"}
                         className="flex items-center gap-2 font-bold text-sky-600 disabled:cursor-not-allowed disabled:opacity-35"
                         onClick={() => runAndClose(onExport)}
                     >
