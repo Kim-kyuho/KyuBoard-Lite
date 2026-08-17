@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ImageCard from "./ImageCard";
 import ImageUrlModal from "./ImageUrlModal";
 import AboutModal from "./AboutModal";
+import AiAssistantButton from "./AiAssistantButton";
+import AiChatPanel from "./AiChatPanel";
+import AiUnlockPanel from "./AiUnlockPanel";
 import MemoCard from "@/components/MemoCard";
 import BoardMenu from "./BoardMenu";
 import BoardToolBar from "./BoardToolBar";
@@ -26,6 +29,7 @@ import { useBoardScroll } from "@/hooks/useBoardScroll";
 import { useBoardSearch } from "@/hooks/useBoardSearch";
 import { useBoardZoom } from "@/hooks/useBoardZoom";
 import { useBoardTransfer } from "@/hooks/useBoardTransfer";
+import { useAiAssistant } from "@/hooks/useAiAssistant";
 import { defaultBoard, type BoardSnapshot } from "@/lib/board-state";
 import { loadBoardState, replaceBoardState } from "@/lib/browser-db/client";
 
@@ -162,6 +166,48 @@ export default function BoardClient() {
         initialStrokes: [],
     });
 
+    const {
+        aiPanelOpen,
+        unlocked: aiUnlocked,
+        unlocking: aiUnlocking,
+        unlockError: aiUnlockError,
+        messages: aiMessages,
+        sending: aiSending,
+        saving: aiSaving,
+        hasPendingCards: hasPendingAiCards,
+        handleToggleAiPanel,
+        handleUnlock: handleAiUnlock,
+        handleLock: handleAiLock,
+        handleSendMessage: handleAiSendMessage,
+        handleSavePendingCards: handleSaveAiCards,
+        discardPendingCards: discardAiCards,
+    } = useAiAssistant({
+        boardId: currentBoard.boardId,
+        boardWidth,
+        boardHeight,
+        boardZoom,
+        cardLocationRef,
+        setMessage: setPermissionMessage,
+        memos,
+        mermaids,
+        tables,
+        images,
+        setMemos,
+        setMermaids,
+        setTables,
+        setImages,
+        onInsertMemo: handleInsertMemo,
+        onInsertMermaid: handleInsertMermaid,
+        onInsertTable: handleInsertTable,
+        onUpdateMemo: handleUpdateMemo,
+        onUpdateMermaid: handleUpdateMermaid,
+        onUpdateTable: handleUpdateTable,
+        onDeleteMemo: handleDeleteMemo,
+        onDeleteMermaid: handleDeleteMermaid,
+        onDeleteTable: handleDeleteTable,
+        onDeleteImage: handleDeleteImage,
+    });
+
     const isEditing =
         editingMemoId !== null ||
         editingImageId !== null ||
@@ -203,8 +249,10 @@ export default function BoardClient() {
         };
     }, [applySnapshot]);
 
+    // AI 제안이 남아 있는 동안에는 저장하지 않는다. 임시 카드는 음수 ID라서 스키마 검증에
+    // 걸리고, 무엇보다 아직 사용자가 받아들이지 않은 변경을 파일에 쓰면 안 된다.
     useEffect(() => {
-        if (!databaseReady || isEditing || drawingMode) return;
+        if (!databaseReady || isEditing || drawingMode || hasPendingAiCards) return;
 
         const timeoutId = window.setTimeout(() => {
             replaceBoardState(snapshot).catch((error: unknown) => {
@@ -212,7 +260,11 @@ export default function BoardClient() {
             });
         }, 150);
         return () => window.clearTimeout(timeoutId);
-    }, [databaseReady, drawingMode, isEditing, snapshot]);
+    }, [databaseReady, drawingMode, hasPendingAiCards, isEditing, snapshot]);
+
+    // Export는 내보내기 전에 현재 snapshot을 파일에 쓴다. 편집 중과 마찬가지로 AI 제안이
+    // 남아 있는 동안에도 잠근다. 임시 카드는 음수 ID라서 저장 단계에서 검증에 걸린다.
+    const exportDisabled = isEditing || drawingMode || hasPendingAiCards;
 
     const {
         importInputRef,
@@ -221,7 +273,7 @@ export default function BoardClient() {
         handleImportClick,
         handleImport,
     } = useBoardTransfer({
-        exportDisabled: isEditing || drawingMode,
+        exportDisabled,
         setMessage: setPermissionMessage,
         getSnapshot: () => snapshot,
     });
@@ -281,7 +333,7 @@ export default function BoardClient() {
             menuOpen={menuOpen}
             currentBoard={currentBoard}
             setMenuOpen={setMenuOpen}
-            exportDisabled={isEditing || drawingMode}
+            exportDisabled={exportDisabled}
             transferring={transferring}
             onExport={handleExport}
             onImport={handleImportClick}
@@ -344,6 +396,30 @@ export default function BoardClient() {
         {aboutOpen && (
             <AboutModal onClose={() => setAboutOpen(false)} />
         )}
+        <AiAssistantButton
+            aiPanelOpen={aiPanelOpen}
+            onToggle={handleToggleAiPanel}
+        />
+        {aiPanelOpen && (aiUnlocked ? (
+            <AiChatPanel
+                messages={aiMessages}
+                sending={aiSending}
+                saving={aiSaving}
+                hasPendingCards={hasPendingAiCards}
+                onSend={handleAiSendMessage}
+                onSave={handleSaveAiCards}
+                onDiscard={discardAiCards}
+                onLock={handleAiLock}
+                onClose={handleToggleAiPanel}
+            />
+        ) : (
+            <AiUnlockPanel
+                unlocking={aiUnlocking}
+                errorMessage={aiUnlockError}
+                onUnlock={handleAiUnlock}
+                onClose={handleToggleAiPanel}
+            />
+        ))}
         {markdownViewOpen && (
             <BoardMarkdownView
                 snapshot={snapshot}

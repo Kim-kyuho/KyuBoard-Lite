@@ -9,9 +9,11 @@
 1. 마운트 후 `loadBoardState()`가 Worker를 시작한다.
 2. Worker가 SQLite WASM을 초기화하고 IndexedDB의 SQLite 파일을 deserialize한다.
 3. 저장된 전체 snapshot을 React 상태에 적용한 뒤 보드를 렌더링한다.
-4. 상태가 바뀌고 편집/드로잉 중이 아니면 150ms 후 `replaceBoardState(snapshot)`으로 트랜잭션 저장한다.
+4. 상태가 바뀌고 편집/드로잉/AI 제안 중이 아니면 150ms 후 `replaceBoardState(snapshot)`으로 트랜잭션 저장한다.
 
 초기화 실패 시 빈 보드로 조용히 진행하지 않고 브라우저 저장소 요구사항을 포함한 오류 화면을 표시한다.
+
+AI 어시스턴트가 올린 임시 카드는 음수 ID를 쓰고 `parseBoardSnapshot`은 양수 ID만 받는다. 그래서 저장하지 않은 제안이 남아 있는 동안에는 자동 저장을 멈춘다. 사용자가 Save를 눌러 임시 ID가 양수로 바뀌면 다시 돌면서 파일에 반영된다. 자세한 내용은 `ai-assistant.md`를 본다.
 
 ## Export 잠금
 
@@ -23,6 +25,7 @@ editingImageId !== null
 editingMermaidId !== null
 editingTableId !== null
 drawingMode === true
+hasPendingAiCards === true
 ```
 
 Export는 먼저 현재 snapshot 저장을 기다린 후 SQLite 파일을 내보낸다. 잠금은 카드 내부 편집 상태가 collection 상태에 아직 반영되지 않은 시점의 불완전한 파일 생성을 막는다.
