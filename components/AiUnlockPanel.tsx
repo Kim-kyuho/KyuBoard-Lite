@@ -11,10 +11,7 @@ type AiUnlockPanelProps = {
     onClose: () => void;
 };
 
-// 잠금 해제 화면. 채팅 패널과 같은 자리·같은 크기로 떠서 두 상태가 오갈 때 창이 튀지 않는다.
-//
-// 비밀번호는 여기서 검사하지 않는다. 서버가 AI_PASSWORD와 비교하고, 맞으면 HttpOnly 쿠키를
-// 내려 준다. 클라이언트는 결과만 받는다.
+// 비밀번호 확인은 서버에서만 함 - 여기는 입력만 받음
 export default function AiUnlockPanel({ unlocking, errorMessage, onUnlock, onClose }: AiUnlockPanelProps) {
     const [password, setPassword] = useState("");
 
@@ -51,8 +48,7 @@ export default function AiUnlockPanel({ unlocking, errorMessage, onUnlock, onClo
 
             <form className="flex flex-col gap-3 px-4 py-4" onSubmit={handleSubmit}>
                 <p className="text-sm leading-6 text-neutral-500">
-                    KyuBoard Lite has no sign-in, so the assistant is protected by its own password.
-                    You stay unlocked until this browser closes.
+                    Enter the assistant password. Unlocking lasts until this browser closes.
                 </p>
                 <input
                     autoFocus

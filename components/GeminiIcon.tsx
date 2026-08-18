@@ -1,5 +1,4 @@
 // lucide-react에는 Gemini 아이콘이 없어 별 모양 심볼을 인라인 SVG로 둔다.
-// currentColor를 쓰므로 버튼의 text 색상을 그대로 따라간다.
 export default function GeminiIcon({
     className,
     style,
