@@ -11,6 +11,7 @@ type AiUnlockPanelProps = {
     onClose: () => void;
 };
 
+// 비밀번호 확인은 서버에서만 함 - 여기는 입력만 받음
 export default function AiUnlockPanel({ unlocking, errorMessage, onUnlock, onClose }: AiUnlockPanelProps) {
     const [password, setPassword] = useState("");
 

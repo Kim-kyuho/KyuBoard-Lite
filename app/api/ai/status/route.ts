@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiSessionCookieName, isAiPasswordConfigured, verifyAiSessionToken } from "@/lib/ai/passcode";
 
-// 잠금 쿠키는 HttpOnly라서 클라이언트 JS가 읽을 수 없다. "지금 잠금이 풀렸는지"를 이 경로가
-// 대신 알려준다. 키나 비밀번호 값 자체는 다루지 않는다.
+// 잠금 쿠키가 HttpOnly라 브라우저 JS가 못 읽음 - 잠금 상태는 이 경로로 확인
 export async function GET(request: NextRequest) {
     try {
         const configured = Boolean(process.env.AI_API_KEY) && isAiPasswordConfigured();

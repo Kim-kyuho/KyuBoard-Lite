@@ -222,7 +222,7 @@ export function useAiAssistant({
     const discardPendingCards = useCallback(() => {
         commitCards(restoreCards(currentCards()));
         clearPending();
-        // restoreCards와 commitCards는 아래 값들만 읽는다. 훅 본문에서 매 렌더 새로 만들어지므로 의존성에는 그 값들을 직접 적는다.
+        // restoreCards/commitCards는 매 렌더 새로 만들어짐 - 의존성에는 그 안에서 읽는 값만 적음
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         memos,
@@ -254,7 +254,7 @@ export function useAiAssistant({
 
     const handleToggleAiPanel = async () => {
         if (aiPanelOpen) {
-            // 제안을 남겨 둔 채 닫으면 보드 자동 저장이 멈춘 채로 잊힌다. 먼저 결정하게 한다.
+            // 안 정한 채로 닫으면 자동 저장이 멈춘 걸 모르고 넘어감 - 먼저 결정하게 함
             if (hasPendingCards) {
                 setMessage("Save or discard the assistant's changes first.");
                 return;

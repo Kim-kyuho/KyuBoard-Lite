@@ -15,12 +15,12 @@ import {
 
 const maxPasswordLength = 200;
 
-// Max-Age를 두지 않으면 브라우저를 닫을 때 사라지는 세션 쿠키가 된다.
+// Max-Age 없으면 브라우저 닫을 때 같이 사라지는 세션 쿠키가 됨
 const sessionCookie = (token: string) => ({
     name: aiSessionCookieName,
     value: token,
     httpOnly: true,
-    // 로컬 개발은 http라서 Secure를 붙이면 쿠키가 아예 저장되지 않는다.
+    // 개발은 http로 띄우니까 Secure 붙이면 쿠키가 저장 안 됨
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict" as const,
     path: "/",
