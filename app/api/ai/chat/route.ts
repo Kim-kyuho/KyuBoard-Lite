@@ -51,7 +51,6 @@ const isAssistantMessage = (value: unknown): value is AssistantMessage => {
 export async function POST(request: NextRequest) {
     try {
         // API 비용이 서버 소유자에게 청구되므로 매 요청마다 잠금 쿠키를 다시 검증한다.
-        // 클라이언트가 "열려 있다"고 말하는 것은 근거가 되지 않는다.
         if (!verifyAiSessionToken(request.cookies.get(aiSessionCookieName)?.value)) {
             return NextResponse.json(
                 { ok: false, locked: true, message: "Enter the assistant password to continue." },

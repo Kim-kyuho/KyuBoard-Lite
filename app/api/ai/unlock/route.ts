@@ -13,14 +13,9 @@ import {
     recordFailure,
 } from "@/lib/ai/unlock-throttle";
 
-// 어시스턴트 잠금을 풀고 잠근다. 여기가 유일한 비밀번호 확인 지점이다.
-
 const maxPasswordLength = 200;
 
-/**
- * Max-Age를 두지 않는 세션 쿠키로 내려간다. 브라우저를 닫으면 사라지므로 다음에 열면 다시
- * 묻는다. 그동안은 브라우저가 매 요청에 자동으로 실어 보내므로 다시 입력하지 않는다.
- */
+// Max-Age를 두지 않으면 브라우저를 닫을 때 사라지는 세션 쿠키가 된다.
 const sessionCookie = (token: string) => ({
     name: aiSessionCookieName,
     value: token,
@@ -83,7 +78,6 @@ export async function POST(request: NextRequest) {
     return response;
 }
 
-/** 사용자가 직접 잠근다. 브라우저를 닫기 전에 남의 손을 막고 싶을 때 쓴다. */
 export async function DELETE() {
     const response = NextResponse.json({ ok: true });
     response.cookies.set({ ...sessionCookie(""), maxAge: 0 });

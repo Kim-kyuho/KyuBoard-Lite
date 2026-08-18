@@ -21,7 +21,6 @@ export type AiChatMessage = {
     content: string;
 };
 
-// AI가 만든 카드는 임시 카드로만 올라간다. 사용자가 저장을 눌러야 보드에 확정된다.
 type PendingCards = {
     memoIds: number[];
     mermaidIds: number[];
@@ -30,7 +29,6 @@ type PendingCards = {
 
 const emptyPendingCards: PendingCards = { memoIds: [], mermaidIds: [], tableIds: [] };
 
-// 재배치는 이미 저장된 카드를 움직이므로, 취소하면 되돌릴 수 있게 이전 좌표를 들고 있는다.
 type MovedCard = { id: number; x: number; y: number; previousX: number; previousY: number };
 
 type PendingMoves = {
@@ -41,7 +39,6 @@ type PendingMoves = {
 
 const emptyPendingMoves: PendingMoves = { memos: [], mermaids: [], tables: [] };
 
-// 고치기는 이미 저장된 카드의 내용을 바꾸므로, 취소하면 되돌릴 수 있게 이전 값을 들고 있는다.
 type PendingEdits = {
     memos: BoardMemo[];
     mermaids: BoardMermaid[];
@@ -50,7 +47,6 @@ type PendingEdits = {
 
 const emptyPendingEdits: PendingEdits = { memos: [], mermaids: [], tables: [] };
 
-// 삭제는 저장 전까지 화면에서만 지운다. 취소하면 원래 카드를 그대로 되살린다.
 type PendingDeletions = {
     memos: BoardMemo[];
     mermaids: BoardMermaid[];
@@ -60,10 +56,6 @@ type PendingDeletions = {
 
 const emptyPendingDeletions: PendingDeletions = { memos: [], mermaids: [], tables: [], images: [] };
 
-/**
- * 한 시점의 보드 카드 전체. 제안을 적용하는 함수들은 이 값을 기준으로 받아 다음 값을 만든다.
- * 훅 상태를 직접 읽으면 같은 처리 안에서 앞 단계의 결과를 보지 못한다.
- */
 type BoardCards = {
     memos: BoardMemo[];
     mermaids: BoardMermaid[];
@@ -71,10 +63,8 @@ type BoardCards = {
     images: BoardImage[];
 };
 
-// 새 카드 열은 기존 카드들의 오른쪽 끝 바깥에서 시작해 겹치지 않게 한다.
 const newColumnGap = 120;
 
-// 재배치는 보드 전체를 다시 정리하는 것이므로 항상 보드 왼쪽 위에서 시작한다.
 const boardMarginOrigin = 40;
 
 type UseAiAssistantOptions = {
@@ -143,7 +133,6 @@ export function useAiAssistant({
     onDeleteImage,
 }: UseAiAssistantOptions) {
     const [aiPanelOpen, setAiPanelOpen] = useState(false);
-    // 잠금 쿠키는 HttpOnly라서 JS가 읽을 수 없다. 서버에 물어본 결과만 신뢰한다.
     const [unlocked, setUnlocked] = useState(false);
     const [unlocking, setUnlocking] = useState(false);
     const [unlockError, setUnlockError] = useState("");
@@ -188,14 +177,6 @@ export function useAiAssistant({
         setPendingDeletions(emptyPendingDeletions);
     };
 
-    /**
-     * 아직 저장하지 않은 AI 변경을 모두 되돌린 컬렉션을 계산한다. 화면에는 반영하지 않는다.
-     *
-     * 값으로 돌려주는 이유가 있다. 새 제안이 오면 이전 제안을 먼저 걷어내야 하는데, 방금
-     * setState한 결과는 같은 처리 안에서 memos 같은 closure 값으로 다시 읽을 수 없다. 되돌린
-     * 결과를 값으로 들고 다음 단계의 기준으로 넘겨야, 연달아 고친 카드도 맨 처음 값으로
-     * 돌아간다.
-     */
     const restoreCards = (cards: BoardCards): BoardCards => {
         const restore = <T extends { id: number; x: number; y: number }>(list: T[], moves: MovedCard[]) => {
             if (moves.length === 0) {
@@ -209,7 +190,6 @@ export function useAiAssistant({
             });
         };
 
-        // 고쳐 놓은 카드는 이전 내용으로, 지운 카드는 원래대로 되살린다.
         const revert = <T extends { id: number }>(list: T[], previous: T[], removed: T[]) => {
             const previousById = new Map(previous.map((card) => [card.id, card]));
             const reverted = list.map((card) => previousById.get(card.id) ?? card);
@@ -233,7 +213,6 @@ export function useAiAssistant({
                 pendingEdits.tables,
                 pendingDeletions.tables
             ),
-            // 이미지는 어시스턴트가 만들 수 없으므로 되살릴 것만 있다.
             images: pendingDeletions.images.length > 0
                 ? [...cards.images, ...pendingDeletions.images]
                 : cards.images,
@@ -243,8 +222,7 @@ export function useAiAssistant({
     const discardPendingCards = useCallback(() => {
         commitCards(restoreCards(currentCards()));
         clearPending();
-        // restoreCards와 commitCards는 아래 값들만 읽는다. 훅 본문에서 매 렌더 새로 만들어지므로
-        // 의존성에는 그 값들을 직접 적는다.
+        // restoreCards와 commitCards는 아래 값들만 읽는다. 훅 본문에서 매 렌더 새로 만들어지므로 의존성에는 그 값들을 직접 적는다.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         memos,
@@ -261,10 +239,6 @@ export function useAiAssistant({
         setImages,
     ]);
 
-    /**
-     * 서버에 키와 비밀번호가 설정돼 있는지, 지금 잠금이 풀려 있는지 확인한다.
-     * 쿠키가 만료됐을 수 있으므로 패널을 열 때마다 새로 묻는다.
-     */
     const refreshAiStatus = useCallback(async () => {
         const response = await fetch("/api/ai/status");
         const data = await response.json();
@@ -331,7 +305,6 @@ export function useAiAssistant({
         }
     };
 
-    /** 브라우저를 닫기 전에 직접 잠근다. 대화 기록도 함께 버린다. */
     const handleLock = async () => {
         if (hasPendingCards) {
             setMessage("Save or discard the assistant's changes first.");
@@ -349,7 +322,6 @@ export function useAiAssistant({
         setAiPanelOpen(false);
     };
 
-    // 기존 카드 오른쪽 바깥에 새 열을 잡고, 현재 보이는 화면 높이에 맞춰 시작점을 정한다.
     const getPlanOrigin = (base: BoardCards) => {
         const rightEdges = [
             ...base.memos.map((memo) => memo.x + memo.width),
@@ -367,7 +339,6 @@ export function useAiAssistant({
 
     const applyPlan = (plan: BoardPlan, base: BoardCards) => {
         const planned = layoutBoardPlan(plan, getPlanOrigin(base), boardBounds);
-        // 임시 ID는 증가하도록 만들어, 저장 전에도 메모 탐색 순서가 문서 순서와 같게 유지한다.
         const idBase = -Date.now();
         let idOffset = 0;
         const nextTempId = () => idBase + idOffset++;
@@ -418,7 +389,6 @@ export function useAiAssistant({
             tableIds: newTables.map((table) => table.id),
         });
 
-        // 새 열이 화면 밖이면 사용자가 결과를 볼 수 없으므로 그쪽으로 이동한다.
         const locationElement = cardLocationRef.current;
         if (locationElement && newMemos[0]) {
             locationElement.scrollTo({
@@ -431,7 +401,6 @@ export function useAiAssistant({
         return { droppedSections: planned.droppedSections, placed: newMemos.length, cards: next };
     };
 
-    // 이미 저장된 카드를 옮긴다. 좌표만 로컬에 반영하고, 이전 좌표는 되돌리기용으로 남긴다.
     const applyArrangement = (arrangement: BoardArrangement, base: BoardCards) => {
         const arranged = layoutArrangement(
             arrangement,
@@ -493,7 +462,6 @@ export function useAiAssistant({
         return { droppedSections: arranged.droppedSections, moved: memoMoves.length, cards: next };
     };
 
-    // 모델이 재배치·고치기·지우기 대상을 고를 수 있도록 현재 보드 카드 목록을 요약해 보낸다.
     const getBoardSnapshot = () => {
         const stripHtml = (html: string) =>
             html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -521,7 +489,6 @@ export function useAiAssistant({
         };
     };
 
-    // 고치기: 바꾸기 전 카드를 pendingEdits에 남겨 두고 화면을 먼저 갱신한다.
     const applyEdit = (edit: BoardEdit, base: BoardCards) => {
         const memoEdits = new Map((edit.memos ?? []).map((item) => [item.id, item]));
         const mermaidEdits = new Map((edit.mermaids ?? []).map((item) => [item.id, item]));
@@ -565,7 +532,6 @@ export function useAiAssistant({
 
         commitCards(next);
 
-        // 같은 카드를 연달아 고쳐도 맨 처음 값으로 되돌아가도록 이미 기록된 카드는 덮지 않는다.
         setPendingEdits((prev) => {
             const keep = <T extends { id: number }>(previous: T[], candidates: T[]) => {
                 const known = new Set(previous.map((card) => card.id));
@@ -582,7 +548,6 @@ export function useAiAssistant({
         return { changed: changedCount, cards: next };
     };
 
-    // 지우기: 저장 전까지는 화면에서만 사라진다. 원본을 들고 있다가 취소하면 되살린다.
     const applyDeletion = (deletion: BoardDeletion, base: BoardCards) => {
         const memoIds = new Set(deletion.memoIds ?? []);
         const mermaidIds = new Set(deletion.mermaidIds ?? []);
@@ -641,7 +606,6 @@ export function useAiAssistant({
             const data = await response.json();
 
             if (!data.ok) {
-                // 쿠키가 만료됐으면 다시 비밀번호를 묻는다. 대화 기록은 남겨 둔다.
                 if (data.locked) {
                     setUnlocked(false);
                     setUnlockError("The assistant was locked again. Enter the password to continue.");
@@ -655,12 +619,9 @@ export function useAiAssistant({
 
             const notes: string[] = [];
 
-            // 각 단계가 다음 단계의 기준을 값으로 넘긴다. setState 결과를 다시 읽으려 하면
-            // 같은 처리 안에서는 옛 값이 보이고, 이전 제안을 걷어낸 것이 없던 일이 된다.
             let cards = currentCards();
 
             if (data.plan || data.arrangement || data.edit || data.deletion) {
-                // 이전 제안이 남아 있으면 걷어내고 새 제안만 보여준다.
                 if (hasPendingCards) {
                     cards = restoreCards(cards);
                     commitCards(cards);
@@ -721,15 +682,6 @@ export function useAiAssistant({
         }
     };
 
-    /**
-     * 제안을 보드에 확정한다.
-     *
-     * 임시 카드에 양수 ID를 붙이는 일이 곧 저장이다. 브라우저 SQLite 파일에 실제로 쓰는 것은
-     * BoardClient의 자동 저장인데, 그 자동 저장은 제안이 남아 있는 동안 멈춰 있다. 여기서
-     * pending을 비우는 순간 다시 돌면서 파일에 반영된다.
-     *
-     * 메모는 계획 순서대로 하나씩 처리한다. 메모 ID 순서가 곧 Markdown 문서 순서다.
-     */
     const handleSavePendingCards = async () => {
         if (!hasPendingCards || saving) {
             return;
@@ -768,7 +720,6 @@ export function useAiAssistant({
                 await onInsertTable(table);
             }
 
-            // 고친 카드는 현재 화면 값 그대로 확정한다.
             for (const previous of pendingEdits.memos) {
                 const memo = memos.find((item) => item.id === previous.id);
                 if (!memo) {
@@ -799,7 +750,6 @@ export function useAiAssistant({
                 await onUpdateTable(table);
             }
 
-            // 지우기는 마지막에 확정한다. 앞 단계가 실패해도 원본이 남아 있게 한다.
             for (const memo of pendingDeletions.memos) {
                 await onDeleteMemo(memo.id);
             }
@@ -813,7 +763,6 @@ export function useAiAssistant({
                 await onDeleteImage(image.imageId);
             }
 
-            // 재배치로 옮긴 기존 카드는 좌표만 갱신한다.
             for (const move of pendingMoves.memos) {
                 const memo = memos.find((item) => item.id === move.id);
                 if (!memo) {
